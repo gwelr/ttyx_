@@ -217,7 +217,7 @@ static if (COMPILE_VTE_BACKGROUND_COLOR) {
  * for this method is missing from vte.Terminal.
  */
 void vtePasteText(ExtendedVTE terminal, string text) {
-    vte_terminal_paste_text(terminal.getTerminalStruct(), Str.toStringz(text));
+    _vtePasteText(terminal.getTerminalStruct(), Str.toStringz(text));
 }
 
 private:
@@ -225,10 +225,17 @@ private:
 import gtkc.Loader;
 import vte.c.functions;
 
+// GtkD 3.11+ already defines vte_terminal_paste_text in vte.c.functions.
+// Only define our own binding when it is missing (GtkD 3.10.x).
+static if (__traits(compiles, { alias _ = vte.c.functions.vte_terminal_paste_text; })) {
+	alias _vtePasteText = vte.c.functions.vte_terminal_paste_text;
+} else {
+	__gshared extern(C) void function(VteTerminal* terminal, const(char)* text) _vtePasteText;
+}
+
 __gshared extern(C) {
 	int function(VteTerminal* terminal) c_vte_terminal_get_disable_bg_draw;
 	void function(VteTerminal* terminal, int isAudible) c_vte_terminal_set_disable_bg_draw;
-	void function(VteTerminal* terminal, const(char)* text) c_vte_terminal_paste_text;
 
 	static if (COMPILE_VTE_BACKGROUND_COLOR) {
 		void function(VteTerminal* terminal, GdkRGBA* color) c_vte_terminal_get_color_background_for_draw;
@@ -237,7 +244,6 @@ __gshared extern(C) {
 
 alias vte_terminal_get_disable_bg_draw = c_vte_terminal_get_disable_bg_draw;
 alias vte_terminal_set_disable_bg_draw = c_vte_terminal_set_disable_bg_draw;
-alias vte_terminal_paste_text = c_vte_terminal_paste_text;
 
 static if (COMPILE_VTE_BACKGROUND_COLOR) {
 	alias vte_terminal_get_color_background_for_draw = c_vte_terminal_get_color_background_for_draw;
@@ -246,7 +252,11 @@ static if (COMPILE_VTE_BACKGROUND_COLOR) {
 shared static this() {
 	Linker.link(vte_terminal_get_disable_bg_draw, "vte_terminal_get_disable_bg_draw", LIBRARY_VTE);
 	Linker.link(vte_terminal_set_disable_bg_draw, "vte_terminal_set_disable_bg_draw", LIBRARY_VTE);
-	Linker.link(vte_terminal_paste_text, "vte_terminal_paste_text", LIBRARY_VTE);
+
+	// Only link our own binding if GtkD doesn't provide it
+	static if (!__traits(compiles, { alias _ = vte.c.functions.vte_terminal_paste_text; })) {
+		Linker.link(_vtePasteText, "vte_terminal_paste_text", LIBRARY_VTE);
+	}
 
 	static if (COMPILE_VTE_BACKGROUND_COLOR) {
 		Linker.link(vte_terminal_get_color_background_for_draw, "vte_terminal_get_color_background_for_draw", LIBRARY_VTE);

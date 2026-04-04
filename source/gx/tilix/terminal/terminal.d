@@ -1447,7 +1447,7 @@ private:
         dialog.showAll();
         if (dialog.run() == ResponseType.APPLY) {
             pasteText = dialog.text;
-            vte.pasteText(pasteText[0 .. $]);
+            vtePasteText(vte, pasteText[0 .. $]);
             if (gsProfile.getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
                 scrollToBottom();
             }
@@ -1488,9 +1488,9 @@ private:
 
         if (gsSettings.getBoolean(SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY) && pasteText.length > 0 && (pasteText[0] == '#' || pasteText[0] == '$')) {
             pasteText = pasteText[1 .. $];
-            vte.pasteText(pasteText);
+            vtePasteText(vte, pasteText);
         } else if (stripTrailingWhitespace) {
-            vte.pasteText(pasteText);
+            vtePasteText(vte, pasteText);
         } else if (source == GDK_SELECTION_CLIPBOARD) {
             vte.pasteClipboard();
         } else {

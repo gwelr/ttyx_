@@ -509,6 +509,11 @@
       <summary>Show visual indicator when running as root</summary>
       <description>If true, a red tint and "as root" label will be shown in the terminal title bar when any process is running with elevated privileges.</description>
     </key>
+    <key name="sidebar-pinned" type="b">
+      <default>false</default>
+      <summary>Pin the session sidebar as a side panel</summary>
+      <description>If true, the session sidebar is displayed as a permanent side panel instead of a slide-over overlay. Application restart required.</description>
+    </key>
 
     <!-- Global settings for triggers and custom links-->
     <key name="custom-hyperlinks" type="as">

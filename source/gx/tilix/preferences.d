@@ -152,6 +152,7 @@ immutable string[] SETTINGS_QUAKE_WINDOW_POSITION_VALUES = ["top", "bottom"];
 
 enum SETTINGS_PROCESS_MONITOR = "process-monitor";
 enum SETTINGS_ROOT_INDICATOR = "root-indicator";
+enum SETTINGS_SIDEBAR_PINNED = "sidebar-pinned";
 
 //Proxy Environment Variables
 enum SETTINGS_SET_PROXY_ENV_KEY = "set-proxy-env";

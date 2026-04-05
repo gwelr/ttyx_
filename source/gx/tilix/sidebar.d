@@ -69,6 +69,7 @@ private:
     ScrolledWindow sw;
 
     bool blockSelectedHandler;
+    bool _pinned = false;
 
     void onRowActivated(ListBoxRow row, ListBox) {
         SideBarRow sr = cast(SideBarRow) row;
@@ -87,6 +88,8 @@ private:
 
     bool onButtonPress(Event event, Widget w) {
         trace("** Sidebar button press");
+        // When pinned, don't intercept clicks outside the sidebar
+        if (_pinned) return false;
         // If button press happened outside of sidebar close it
         // Modified since DND uses eventbox so additional windows in play
         if (event.getWindow() !is null && lbSessions.getWindow() !is null) {
@@ -410,6 +413,19 @@ public:
         if (row !is null) {
             lbSessions.selectRow(row);
         }
+    }
+
+    void setPinned(bool pinned) {
+        _pinned = pinned;
+    }
+
+    /**
+     * Returns the internal ScrolledWindow containing the session list.
+     * Used by pinned sidebar mode to embed the content directly
+     * without the Revealer overlay.
+     */
+    ScrolledWindow getContentWidget() {
+        return sw;
     }
 
 //Events

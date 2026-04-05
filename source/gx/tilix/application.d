@@ -121,6 +121,7 @@ private:
     bool warnedVTEConfigIssue = false;
 
     bool useTabs = false;
+    bool sidebarPinned = false;
 
     bool _processMonitor = false;
 
@@ -293,7 +294,7 @@ private:
     }
 
     void createAppWindow() {
-        AppWindow window = new AppWindow(this, useTabs);
+        AppWindow window = new AppWindow(this, useTabs, sidebarPinned);
         // Window was being realized here to support inserting Window ID
         // into terminal but had lot's of other issues with it so commented
         // it out.
@@ -501,6 +502,7 @@ private:
         gsGeneral = new GSettings(SETTINGS_ID);
         // Set this once globally because it affects more then current window (i.e. shortcuts)
         useTabs = gsGeneral.getBoolean(SETTINGS_USE_TABS_KEY);
+        sidebarPinned = gsGeneral.getBoolean(SETTINGS_SIDEBAR_PINNED);
         _processMonitor = gsGeneral.getBoolean(SETTINGS_PROCESS_MONITOR);
         gsGeneral.addOnChanged(delegate(string key, Settings) {
             applyPreference(key);

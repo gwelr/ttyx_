@@ -73,6 +73,8 @@ import gtk.MenuButton;
 import gtk.MessageDialog;
 import gtk.Notebook;
 import gtk.Overlay;
+import gtk.Paned;
+import gtk.ScrolledWindow;
 import gtk.Popover;
 import gtk.Revealer;
 import gtk.ScrolledWindow;
@@ -152,6 +154,7 @@ private:
     string _windowUUID;
 
     bool useTabs = false;
+    bool sidebarPinned = false;
 
     Notebook nb;
     HeaderBar hb;
@@ -269,6 +272,9 @@ private:
         }, ConnectFlags.AFTER);
         if (!useTabs) {
             sb = new SideBar();
+            if (sidebarPinned) {
+                sb.setPinned(true);
+            }
             sb.onSelected.connect(&onSessionSelected);
             sb.onClose.connect(&onUserSessionClose);
             sb.onRequestReorder.connect(&onSessionReorder);
@@ -279,21 +285,38 @@ private:
         }
 
         Overlay overlay;
+        Box bPinnedLayout;
         if (!useTabs) {
-            overlay = new Overlay();
-            overlay.add(nb);
-            overlay.addOverlay(sb);
+            if (sidebarPinned) {
+                // Extract the sidebar's internal ScrolledWindow and embed it
+                // directly, bypassing the Revealer overlay behavior
+                ScrolledWindow sidebarContent = sb.getContentWidget();
+                sb.remove(sidebarContent);
+                sidebarContent.setSizeRequest(200, -1);
+                bPinnedLayout = new Box(Orientation.HORIZONTAL, 0);
+                bPinnedLayout.packStart(sidebarContent, false, false, 0);
+                bPinnedLayout.packStart(nb, true, true, 0);
+            } else {
+                overlay = new Overlay();
+                overlay.add(nb);
+                overlay.addOverlay(sb);
+            }
         }
 
         //Could be a Box or a Headerbar depending on value of disable_csd
         hb = createHeaderBar();
 
+        // Pick the main content widget
+        Widget mainContent;
+        if (bPinnedLayout !is null) mainContent = bPinnedLayout;
+        else if (overlay !is null) mainContent = overlay;
+        else mainContent = nb;
+
         if (isQuake() || isCSDDisabled()) {
             hb.getStyleContext().addClass("tilix-embedded-headerbar");
             Box box = new Box(Orientation.VERTICAL, 0);
             box.add(hb);
-            if (overlay !is null) box.add(overlay);
-            else box.add(nb);
+            box.add(mainContent);
             if (isQuake()) {
                 box.getStyleContext().addClass("tilix-quake-frame");
             }
@@ -303,8 +326,7 @@ private:
             this.setTitlebar(hb);
             hb.setShowCloseButton(true);
             hb.setTitle(_(APPLICATION_NAME));
-            if (overlay !is null) add(overlay);
-            else add(nb);
+            add(mainContent);
         }
     }
 
@@ -356,7 +378,9 @@ private:
             bSessionButtons = new Box(Orientation.HORIZONTAL, 0);
             bSessionButtons.getStyleContext().addClass("linked");
             btnNew.getStyleContext().addClass("session-new-button");
-            bSessionButtons.packStart(tbSideBar, false, false, 0);
+            if (!sidebarPinned) {
+                bSessionButtons.packStart(tbSideBar, false, false, 0);
+            }
             bSessionButtons.packStart(btnNew, false, false, 0);
         }
 
@@ -485,13 +509,10 @@ private:
             }
         }, null, new GVariant(false));
 
-        if (!useTabs) {
+        if (!useTabs && !sidebarPinned) {
             saViewSideBar = registerActionWithSettings(this, "win", ACTION_WIN_SIDEBAR, gsShortcuts, delegate(GVariant value, SimpleAction sa) {
                 bool newState = !sa.getState().getBoolean();
                 trace("Sidebar action activated " ~ to!string(newState));
-                // Note that populate sessions does some weird shit with event
-                // handling, don't trigger UI activity until after it is done
-                // See comments in gx.gtk.cairo.getWidgetImage
                 if (newState) {
                     sb.populateSessions(getSessions(), getCurrentSession().uuid, sessionNotifications, nb.getAllocatedWidth(), nb.getAllocatedHeight());
                     sb.showAll();
@@ -500,7 +521,6 @@ private:
                 sa.setState(new GVariant(newState));
                 tbSideBar.setActive(newState);
                 if (!newState) {
-                    //Hiding session, restore focus
                     Session session = getCurrentSession();
                     if (session !is null) {
                         session.focusRestore();
@@ -783,11 +803,24 @@ private:
         nb.showAll();
         nb.setCurrentPage(index);
         updateUIState();
+        refreshPinnedSidebar();
+    }
+
+    void refreshPinnedSidebar() {
+        if (sidebarPinned && sb !is null && getCurrentSession() !is null) {
+            threadsAddIdleDelegate(delegate() {
+                if (nb.getAllocatedWidth() > 0 && nb.getAllocatedHeight() > 0) {
+                    sb.populateSessions(getSessions(), getCurrentSession().uuid, sessionNotifications, nb.getAllocatedWidth(), nb.getAllocatedHeight());
+                }
+                return false;
+            });
+        }
     }
 
     void removeSession(Session session) {
         nb.remove(session);
         updateUIState();
+        refreshPinnedSidebar();
         //Close Window if there are no pages
         if (nb.getNPages() == 0) {
             if (gsSettings.getBoolean(SETTINGS_CLOSE_WITH_LAST_SESSION_KEY)) {
@@ -918,7 +951,9 @@ private:
      */
     void onSessionSelected(string sessionUUID) {
         trace("Session selected " ~ sessionUUID);
-        saViewSideBar.activate(null);
+        if (!sidebarPinned) {
+            saViewSideBar.activate(null);
+        }
         if (sessionUUID.length > 0) {
             activateSession(sessionUUID);
         } else {
@@ -967,7 +1002,7 @@ private:
     }
 
     AppWindow cloneWindow() {
-        AppWindow result = new AppWindow(tilix, useTabs);
+        AppWindow result = new AppWindow(tilix, useTabs, sidebarPinned);
         tilix.addAppWindow(result);
 
         result.setDefaultSize(getAllocatedWidth(), getAllocatedHeight());
@@ -1036,7 +1071,7 @@ private:
     }
 
     void updateUIState() {
-        if (!useTabs) {
+        if (!useTabs && !sidebarPinned) {
             tbSideBar.queueDraw();
         }
         //saCloseSession.setEnabled(nb.getNPages > 1);
@@ -1681,12 +1716,13 @@ private:
 
 public:
 
-    this(Application application, bool useTabs = false) {
+    this(Application application, bool useTabs = false, bool sidebarPinned = false) {
         super(application);
         group = new WindowGroup();
         group.addWindow(this);
         _windowUUID = randomUUID().toString();
         this.useTabs = useTabs;
+        this.sidebarPinned = sidebarPinned;
         tilix.addAppWindow(this);
         gsSettings = new GSettings(SETTINGS_ID);
         gsSettings.addOnChanged(delegate(string key, GSettings) {
@@ -1942,8 +1978,8 @@ public:
      * Creates a new session and prompts the user for session properties
      */
     void createSession() {
-        // Hide the sidebar if it is open
-        if (!useTabs && sb.getRevealChild()) {
+        // Hide the sidebar if it is open (not when pinned)
+        if (!useTabs && !sidebarPinned && sb.getRevealChild()) {
             saViewSideBar.activate(null);
         }
 

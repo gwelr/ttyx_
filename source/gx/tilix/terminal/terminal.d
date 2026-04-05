@@ -1475,7 +1475,9 @@ private:
                     lines ~= line.stripRight();
                 }
                 string stripped = lines.join("\n");
-                cb.setText(stripped, cast(int) stripped.length);
+                if (stripped.length > 0) {
+                    cb.setText(stripped, cast(int) stripped.length);
+                }
             }
         }
     }

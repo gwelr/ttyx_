@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-DOMAIN=tilix
+DOMAIN=ttyx
 BASEDIR=$(dirname $0)
 OUTPUT_FILE=${BASEDIR}/po/${DOMAIN}.pot
 
@@ -22,7 +22,7 @@ xgettext \
   --join-existing \
   --output $OUTPUT_FILE \
   --directory=$BASEDIR \
-  ${BASEDIR}/data/nautilus/open-tilix.py
+  ${BASEDIR}/data/nautilus/open-ttyx.py
 
 # Glade UI Files
 find ${BASEDIR}/data/resources/ui -name '*.ui' | xgettext \
@@ -41,11 +41,11 @@ xgettext \
   --directory=$BASEDIR \
   --foreign-user \
   --language=Desktop \
-  ${BASEDIR}/data/pkg/desktop/com.gexperts.Tilix.desktop.in
+  ${BASEDIR}/data/pkg/desktop/io.github.gwelr.ttyx.desktop.in
 
-TMP_METAINFO_FILE=${BASEDIR}/data/metainfo/com.gexperts.Tilix.appdata.xml.rel.in
+TMP_METAINFO_FILE=${BASEDIR}/data/metainfo/io.github.gwelr.ttyx.appdata.xml.rel.in
 appstreamcli news-to-metainfo ${BASEDIR}/NEWS \
-  ${BASEDIR}/data/metainfo/com.gexperts.Tilix.appdata.xml.in \
+  ${BASEDIR}/data/metainfo/io.github.gwelr.ttyx.appdata.xml.in \
   ${TMP_METAINFO_FILE}
 xgettext \
   --join-existing \
@@ -78,10 +78,10 @@ find ${BASEDIR}/po \
 echo "Updating manpage translations..."
 if type po4a-updatepo >/dev/null 2>&1; then
   MANDIR=${BASEDIR}/data/man
-  po4a-gettextize -f man -m ${MANDIR}/tilix.1 -p ${MANDIR}/po/tilix.1.man.pot
+  po4a-gettextize -f man -m ${MANDIR}/ttyx.1 -p ${MANDIR}/po/tilix.1.man.pot
   for file in ${MANDIR}/po/*.man.po
   do
     echo -n $file
-    po4a-updatepo -f man -m ${MANDIR}/tilix.1 -p $file
+    po4a-updatepo -f man -m ${MANDIR}/ttyx.1 -p $file
   done
 fi

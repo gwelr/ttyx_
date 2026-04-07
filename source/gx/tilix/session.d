@@ -154,10 +154,10 @@ private:
 
     void createBaseUI() {
         stackGroup = new Box(Orientation.VERTICAL, 0);
-        stackGroup.getStyleContext().addClass("tilix-background");
+        stackGroup.getStyleContext().addClass("ttyx-background");
         addNamed(stackGroup, STACK_GROUP_NAME);
         stackMaximized = new Box(Orientation.VERTICAL, 0);
-        stackMaximized.getStyleContext().addClass("tilix-background");
+        stackMaximized.getStyleContext().addClass("ttyx-background");
         addNamed(stackMaximized, STACK_MAX_NAME);
         groupChild = new Box(Orientation.VERTICAL, 0);
         stackGroup.add(groupChild);
@@ -997,7 +997,7 @@ private:
         gsSettings.addOnChanged(delegate(string key, GSettings) {
             applyPreference(key);
         });
-        getStyleContext.addClass("tilix-background");
+        getStyleContext.addClass("ttyx-background");
 
         addOnDraw(&onDraw);
     }

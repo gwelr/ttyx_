@@ -13,17 +13,17 @@ fi
 
 echo "Uninstalling from prefix ${PREFIX}"
 
-rm ${PREFIX}/bin/tilix
-rm ${PREFIX}/share/glib-2.0/schemas/com.gexperts.Tilix.gschema.xml
+rm ${PREFIX}/bin/ttyx
+rm ${PREFIX}/share/glib-2.0/schemas/io.github.gwelr.ttyx.gschema.xml
 glib-compile-schemas ${PREFIX}/share/glib-2.0/schemas/
-rm -rf ${PREFIX}/share/tilix
+rm -rf ${PREFIX}/share/ttyx
 
-find ${PREFIX}/share/locale -type f -name "tilix.mo" -delete
-find ${PREFIX}/share/icons/hicolor -type f -name "com.gexperts.Tilix.png" -delete
-find ${PREFIX}/share/icons/hicolor -type f -name "com.gexperts.Tilix*.svg" -delete
-rm ${PREFIX}/share/nautilus-python/extensions/open-tilix.py
-rm ${PREFIX}/share/dbus-1/services/com.gexperts.Tilix.service
-rm ${PREFIX}/share/applications/com.gexperts.Tilix.desktop
-rm ${PREFIX}/share/metainfo/com.gexperts.Tilix.appdata.xml
-rm ${PREFIX}/share/man/man1/tilix.1.gz
-rm ${PREFIX}/share/man/*/man1/tilix.1.gz
+find ${PREFIX}/share/locale -type f -name "ttyx.mo" -delete
+find ${PREFIX}/share/icons/hicolor -type f -name "io.github.gwelr.ttyx.png" -delete
+find ${PREFIX}/share/icons/hicolor -type f -name "io.github.gwelr.ttyx*.svg" -delete
+rm ${PREFIX}/share/nautilus-python/extensions/open-ttyx.py
+rm ${PREFIX}/share/dbus-1/services/io.github.gwelr.ttyx.service
+rm ${PREFIX}/share/applications/io.github.gwelr.ttyx.desktop
+rm ${PREFIX}/share/metainfo/io.github.gwelr.ttyx.appdata.xml
+rm ${PREFIX}/share/man/man1/ttyx.1.gz
+rm ${PREFIX}/share/man/*/man1/ttyx.1.gz

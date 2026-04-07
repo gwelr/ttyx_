@@ -1,8 +1,8 @@
 {
-    "name": "tilix",
-    "description": "A VTE based terminal emulator for Linux",
-    "copyright": "Copyright © 2016, Gerald Nunn",
-    "authors": ["Gerald Nunn"],
+    "name": "ttyx",
+    "description": "A tiling terminal emulator for Linux, forked from Tilix",
+    "copyright": "Copyright © 2026, gwelr",
+    "authors": ["gwelr", "Gerald Nunn and the Tilix contributors"],
     "mainSourceFile": "source/app.d",
     "dflags-ldc": ["-disable-linker-strip-dead","-link-defaultlib-shared=false"],
     "dependencies": {

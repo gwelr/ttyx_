@@ -350,7 +350,7 @@ private:
         bTitle.setVexpand(false);
 
         lblTitle = new Label(_("Terminal"));
-        lblTitle.getStyleContext().addClass("tilix-terminal-title");
+        lblTitle.getStyleContext().addClass("ttyx-terminal-title");
         lblTitle.setEllipsize(PangoEllipsizeMode.START);
         lblTitle.setUseMarkup(true);
 
@@ -441,7 +441,7 @@ private:
         spBell = new Spinner();
         spBell.setNoShowAll(true);
         spBell.setTooltipText(_("Terminal bell"));
-        spBell.getStyleContext().addClass("tilix-bell");
+        spBell.getStyleContext().addClass("ttyx-bell");
         bTitle.packEnd(spBell, false, false, 0);
 
         EventBox evtTitle = new EventBox();
@@ -892,11 +892,11 @@ private:
      */
     GMenuItem createAddButtons() {
         GMenuItem addH = new GMenuItem(null, "session.add-right");
-        addH.setAttributeValue("verb-icon", new GVariant("tilix-add-horizontal-symbolic"));
+        addH.setAttributeValue("verb-icon", new GVariant("ttyx-add-horizontal-symbolic"));
         addH.setAttributeValue("label", new GVariant(_("Add Right")));
 
         GMenuItem addV = new GMenuItem(null, "session.add-down");
-        addV.setAttributeValue("verb-icon", new GVariant("tilix-add-vertical-symbolic"));
+        addV.setAttributeValue("verb-icon", new GVariant("ttyx-add-vertical-symbolic"));
         addV.setAttributeValue("label", new GVariant(_("Add Down")));
 
         GMenu addSection = new GMenu();
@@ -1146,7 +1146,7 @@ private:
         terminalOverlay = new Overlay();
         if (useOverlayScrollbar) {
             sw = new ScrolledWindow(vte);
-            sw.getStyleContext.addClass("tilix-terminal-scrolledwindow");
+            sw.getStyleContext.addClass("ttyx-terminal-scrolledwindow");
             sw.setPropagateNaturalHeight(true);
             sw.setPropagateNaturalWidth(true);
             sw.getVadjustment().addOnValueChanged(&updateNewOutputIndicator);
@@ -1163,7 +1163,7 @@ private:
         // overlay scrollbars look awesome with VTE
         if (!useOverlayScrollbar) {
             sb = new Scrollbar(Orientation.VERTICAL, vte.getVadjustment());
-            sb.getStyleContext().addClass("tilix-terminal-scrollbar");
+            sb.getStyleContext().addClass("ttyx-terminal-scrollbar");
             sb.getAdjustment().addOnValueChanged(&updateNewOutputIndicator);
             terminalBox.add(sb);
 
@@ -1748,7 +1748,7 @@ private:
             case TriggerAction.SEND_NOTIFICATION:
                 string[string] parameters = getParameters(trigger.parameters);
                 tracef("Parameters count: %d", parameters.length);
-                string title = _("Tilix Custom Notification");
+                string title = _("ttyx_ Custom Notification");
                 string _body;
                 if ("title" in parameters) title = parameters["title"];
                 if ("body" in parameters) _body = parameters["body"];
@@ -3779,10 +3779,10 @@ private:
         if (lblRootIndicator is null || bTitle is null) return;
         if (isRoot && gsSettings.getBoolean(SETTINGS_ROOT_INDICATOR)) {
             lblRootIndicator.show();
-            bTitle.getStyleContext().addClass("tilix-root-title");
+            bTitle.getStyleContext().addClass("ttyx-root-title");
         } else {
             lblRootIndicator.hide();
-            bTitle.getStyleContext().removeClass("tilix-root-title");
+            bTitle.getStyleContext().removeClass("ttyx-root-title");
         }
     }
 

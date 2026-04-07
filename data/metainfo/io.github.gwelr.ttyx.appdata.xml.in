@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.gwelr.ttyx</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MPL-2.0</project_license>
+
+  <name>ttyx_</name>
+  <summary>A tiling terminal for Linux, forked from Tilix</summary>
+
+  <recommends>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </recommends>
+
+  <description>
+    <p>
+      ttyx_ is an actively maintained fork of Tilix, the tiling terminal emulator.
+    </p>
+    <p>It lets you:</p>
+    <ul>
+      <li>Layout terminals in any fashion by splitting them horizontally or vertically</li>
+      <li>Terminals can be re-arranged using drag and drop both within and between windows</li>
+      <li>Terminals can be detached into a new window via drag and drop</li>
+      <li>Input can be synchronized between terminals so commands typed in one terminal are replicated to the others</li>
+      <li>The grouping of terminals can be saved and loaded from disk</li>
+      <li>Terminals support custom titles</li>
+      <li>Color schemes are stored in files and custom color schemes can be created by simply creating a new file</li>
+      <li>Transparent background</li>
+      <li>Supports notifications when processes are completed out of view</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://github.com/gwelr/ttyx</url>
+  <url type="bugtracker">https://github.com/gwelr/ttyx/issues</url>
+
+  <translation type="gettext">ttyx</translation>
+  <launchable type="desktop-id">io.github.gwelr.ttyx.desktop</launchable>
+
+  <content_rating type="oars-1.1"/>
+  <developer id="io.github.gwelr">
+    <name translate="no">gwelr</name>
+  </developer>
+
+  <provides>
+    <binary>ttyx</binary>
+  </provides>
+</component>

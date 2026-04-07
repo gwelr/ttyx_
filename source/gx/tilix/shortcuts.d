@@ -30,7 +30,7 @@ public:
 
 ShortcutsWindow getShortcutWindow() {
     Builder builder = new Builder();
-    builder.setTranslationDomain(TILIX_DOMAIN);
+    builder.setTranslationDomain(TTYX_DOMAIN);
     if (!builder.addFromResource(SHORTCUT_UI_RESOURCE)) {
         error("Could not load shortcuts from " ~ SHORTCUT_UI_RESOURCE);
         return null;

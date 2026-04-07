@@ -1,5 +1,5 @@
 /* Easier navigation in tree view */
-@binding-set TilixTreeViewBinding
+@binding-set TtyxTreeViewBinding
 {
     bind "Left" {
       "select-cursor-parent" ()
@@ -12,5 +12,5 @@
 
 treeview
 {
-    -gtk-key-bindings: TilixTreeViewBinding;
+    -gtk-key-bindings: TtyxTreeViewBinding;
 }

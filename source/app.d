@@ -97,7 +97,7 @@ int main(string[] args) {
     }
 
     //textdomain
-    textdomain(TILIX_DOMAIN);
+    textdomain(TTYX_DOMAIN);
     // Set application ID for GTK3 on Wayland
     Util.setPrgname(APPLICATION_ID);
     // Init GTK early so localization is available
@@ -177,10 +177,10 @@ private:
         import gtk.Version: Version;
 
         writeln(_("Versions"));
-        writeln("\t" ~ format(_("Tilix version: %s"), APPLICATION_VERSION));
+        writeln("\t" ~ format(_("ttyx_ version: %s"), APPLICATION_VERSION));
         writeln("\t" ~ format(_("VTE version: %s"), getVTEVersion()));
         writeln("\t" ~ format(_("GTK Version: %d.%d.%d") ~ "\n", Version.getMajorVersion(), Version.getMinorVersion(), Version.getMicroVersion()));
-        writeln(_("Tilix Special Features"));
+        writeln(_("ttyx_ Special Features"));
         writeln("\t" ~ format(_("Notifications enabled=%b"), checkVTEFeature(TerminalFeature.EVENT_NOTIFICATION)));
         writeln("\t" ~ format(_("Triggers enabled=%b"), checkVTEFeature(TerminalFeature.EVENT_SCREEN_CHANGED)));
         writeln("\t" ~ format(_("Badges enabled=%b"), isVTEBackgroundDrawEnabled));

@@ -120,7 +120,7 @@ private:
 
     void createUI() {
 
-        setTitle(_("Tilix Preferences"));
+        setTitle(_("ttyx_ Preferences"));
 
         createSplitHeaders();
 
@@ -265,7 +265,7 @@ private:
         Box bTitle = new Box(Orientation.HORIZONTAL, 0);
         bTitle.add(hbSide);
         Separator sTitle = new Separator(Orientation.VERTICAL);
-        sTitle.getStyleContext().addClass("tilix-title-separator");
+        sTitle.getStyleContext().addClass("ttyx-title-separator");
         bTitle.add(sTitle);
         bTitle.add(hbMain);
 

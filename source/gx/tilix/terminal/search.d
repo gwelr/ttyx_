@@ -97,7 +97,7 @@ private:
         seSearch.setWidthChars(1);
         seSearch.setMaxWidthChars(30);
         if (Version.checkVersion(3, 20, 0).length != 0) {
-            seSearch.getStyleContext().addClass("tilix-search-entry");
+            seSearch.getStyleContext().addClass("ttyx-search-entry");
         }
         seSearch.addOnSearchChanged(delegate(SearchEntry) {
             setTerminalSearchCriteria();
@@ -163,7 +163,7 @@ private:
 
         Frame frame = new Frame(bSearch, null);
         frame.setShadowType(ShadowType.NONE);
-        frame.getStyleContext().addClass("tilix-search-frame");
+        frame.getStyleContext().addClass("ttyx-search-frame");
         add(frame);
     }
 

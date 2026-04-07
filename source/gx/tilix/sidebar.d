@@ -306,7 +306,7 @@ public:
         lbSessions = new ListBox();
         lbSessions.setCanFocus(true);
         lbSessions.setSelectionMode(SelectionMode.BROWSE);
-        lbSessions.getStyleContext().addClass("tilix-session-sidebar");
+        lbSessions.getStyleContext().addClass("ttyx-session-sidebar");
         lbSessions.addOnRowActivated(&onRowActivated);
         //lbSessions.addOnKeynavFailed(&onKeyNavFailed);
 
@@ -507,7 +507,7 @@ private:
         setAllMargins(lblNCount, 4);
         evNotification = new EventBox();
         evNotification.add(lblNCount);
-        afNotification = wrapWidget(evNotification, "tilix-notification-count");
+        afNotification = wrapWidget(evNotification, "ttyx-notification-count");
         afNotification.setNoShowAll(true);
         grid.attach(afNotification, 0, 2, 1, 1);
 
@@ -527,7 +527,7 @@ private:
         lblName.setHalign(GtkAlign.CENTER);
         lblName.setHexpand(true);
         lblName.setSensitive(false);
-        lblName.getStyleContext().addClass("tilix-session-name");
+        lblName.getStyleContext().addClass("ttyx-session-name");
         Box b = new Box(Orientation.HORIZONTAL, 4);
         b.setHexpand(true);
         b.add(lblName);
@@ -538,11 +538,11 @@ private:
         lblIndex.setVexpand(false);
         setAllMargins(lblIndex, 4);
         lblIndex.setWidthChars(2);
-        grid.attach(wrapWidget(lblIndex, "tilix-session-index"), 2, 2, 1, 1);
+        grid.attach(wrapWidget(lblIndex, "ttyx-session-index"), 2, 2, 1, 1);
 
         //Add Close Button
         btnClose = new Button("window-close-symbolic", IconSize.MENU);
-        btnClose.getStyleContext().addClass("tilix-sidebar-close-button");
+        btnClose.getStyleContext().addClass("ttyx-sidebar-close-button");
         btnClose.setTooltipText(_("Close"));
         btnClose.setRelief(ReliefStyle.NONE);
         btnClose.setFocusOnClick(false);

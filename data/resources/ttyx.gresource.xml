@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/io/github/gwelr/ttyx">
+    <file preprocess="to-pixdata">icons/16x16/actions/ttyx-add-horizontal-symbolic.symbolic.png</file>
+    <file preprocess="to-pixdata">icons/16x16/actions/ttyx-add-vertical-symbolic.symbolic.png</file>
+    <file preprocess="to-pixdata">icons/32x32/actions/ttyx-add-horizontal-symbolic.symbolic.png</file>
+    <file preprocess="to-pixdata">icons/32x32/actions/ttyx-add-vertical-symbolic.symbolic.png</file>
+    <file>css/ttyx.base.css</file>
+    <file>css/ttyx.base320.css</file>
+    <file>css/ttyx.base.theme.css</file>
+    <file>css/ttyx.Ambiance.css</file>
+    <file>css/ttyx.Radiance.css</file>
+    <file>css/ttyx.Adwaita.scrollbar.css</file>
+    <file>css/ttyx.Lavender.scrollbar.css</file>
+    <file>css/ttyx.Ambiance.scrollbar.css</file>
+    <file>css/ttyx.Radiance.scrollbar.css</file>
+    <file>css/ttyx.Arc.scrollbar.css</file>
+    <file>css/ttyx.Arc-Dark.scrollbar.css</file>
+    <file>css/ttyx.Arc-Darker.scrollbar.css</file>
+    <file compressed="true" preprocess="xml-stripblanks">ui/shortcuts.ui</file>
+  </gresource>
+</gresources>

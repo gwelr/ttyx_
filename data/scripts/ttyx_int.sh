@@ -26,7 +26,7 @@ fi
 # Not an interactive shell?
 [[ $- == *i* ]] || return 0
 
-__tilix_urlencode() (
+__ttyx_urlencode() (
   # This is important to make sure string manipulation is handled
   # byte-by-byte.
   LC_ALL=C
@@ -42,17 +42,17 @@ __tilix_urlencode() (
   done
 )
 
-__tilix_osc7() (
+__ttyx_osc7() (
   local previous_exit_status=$?
-  printf "\033]7;file://%s%s\007" "${HOSTNAME:-}" "$(__tilix_urlencode "${PWD}")"
+  printf "\033]7;file://%s%s\007" "${HOSTNAME:-}" "$(__ttyx_urlencode "${PWD}")"
   return $previous_exit_status
 )
 
 if [[ $PROMPT_COMMAND != *"__vte_prompt_command"* ]]
 then
-    if [ "$TILIX_SILENT" != "1" ]; then
-        echo "Adding tilix osc7"
+    if [ "$TTYX_SILENT" != "1" ]; then
+        echo "Adding ttyx_ osc7"
     fi
-    [ -n "$BASH_VERSION" ] && PROMPT_COMMAND="__tilix_osc7"
-    [ -n "$ZSH_VERSION"  ] && precmd_functions+=(__tilix_osc7)
+    [ -n "$BASH_VERSION" ] && PROMPT_COMMAND="__ttyx_osc7"
+    [ -n "$ZSH_VERSION"  ] && precmd_functions+=(__ttyx_osc7)
 fi

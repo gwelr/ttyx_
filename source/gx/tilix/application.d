@@ -318,7 +318,7 @@ private:
     }
 
     ProcessInformation getProcessesInformation() {
-        ProcessInformation result = ProcessInformation(ProcessInfoSource.APPLICATION, _("Tilix"), "", []);
+        ProcessInformation result = ProcessInformation(ProcessInfoSource.APPLICATION, _("ttyx_"), "", []);
         foreach(window; appWindows) {
             ProcessInformation winInfo = window.getProcessInformation();
             if (winInfo.children.length > 0) {
@@ -681,7 +681,7 @@ private:
         addMainOption(CMD_TITLE, 't', GOptionFlags.NONE, GOptionArg.STRING, _("Set the title of the new terminal"), _("TITLE"));
         addMainOption(CMD_SESSION, 's', GOptionFlags.NONE, GOptionArg.STRING_ARRAY, _("Open the specified session"), _("SESSION_NAME"));
         if (Version.checkVersion(3, 16, 0).length ==0) {
-            addMainOption(CMD_ACTION, 'a', GOptionFlags.NONE, GOptionArg.STRING, _("Send an action to current Tilix instance"), _("ACTION_NAME"));
+            addMainOption(CMD_ACTION, 'a', GOptionFlags.NONE, GOptionArg.STRING, _("Send an action to current ttyx_ instance"), _("ACTION_NAME"));
         }
         addMainOption(CMD_COMMAND, 'e', GOptionFlags.NONE, GOptionArg.STRING, _("Execute the parameter as a command"), _("COMMAND"));
         addMainOption(CMD_MAXIMIZE, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Maximize the terminal window"), null);
@@ -692,9 +692,9 @@ private:
         addMainOption(CMD_NEW_PROCESS, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Start additional instance as new process (Not Recommended)"), null);
         addMainOption(CMD_GEOMETRY, '\0', GOptionFlags.NONE, GOptionArg.STRING, _("Set the window size; for example: 80x24, or 80x24+200+200 (COLSxROWS+X+Y)"), _("GEOMETRY"));
         addMainOption(CMD_QUAKE, 'q', GOptionFlags.NONE, GOptionArg.NONE, _("Opens a window in quake mode or toggles existing quake mode window visibility"), null);
-        addMainOption(CMD_VERSION, 'v', GOptionFlags.NONE, GOptionArg.NONE, _("Show the Tilix and dependent component versions"), null);
-        addMainOption(CMD_PREFERENCES, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Show the Tilix preferences dialog directly"), null);
-        addMainOption(CMD_GROUP, 'g', GOptionFlags.NONE, GOptionArg.STRING, _("Group tilix instances into different processes (Experimental, not recommended)"), _("GROUP_NAME"));
+        addMainOption(CMD_VERSION, 'v', GOptionFlags.NONE, GOptionArg.NONE, _("Show ttyx_ and dependent component versions"), null);
+        addMainOption(CMD_PREFERENCES, '\0', GOptionFlags.NONE, GOptionArg.NONE, _("Show the ttyx_ preferences dialog directly"), null);
+        addMainOption(CMD_GROUP, 'g', GOptionFlags.NONE, GOptionArg.STRING, _("Group ttyx_ instances into different processes (Experimental, not recommended)"), _("GROUP_NAME"));
 
         //Hidden options used to communicate with primary instance
         addMainOption(CMD_TERMINAL_UUID, '\0', GOptionFlags.HIDDEN, GOptionArg.STRING, _("Hidden argument to pass terminal UUID"), _("TERMINAL_UUID"));
@@ -709,7 +709,7 @@ public:
         super(APPLICATION_ID, flags);
 
         if (group.length > 0) {
-            string id = "com.gexperts.Tilix." ~ group;
+            string id = "io.github.gwelr.ttyx." ~ group;
             if (idIsValid(id)) {
                 tracef("Setting app id to %s", id);
                 setApplicationId(id);

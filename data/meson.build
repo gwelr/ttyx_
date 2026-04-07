@@ -61,8 +61,8 @@ endif
 
 # Build resources
 gresource = gnome.compile_resources(
-    'tilix',
-    'resources/tilix.gresource.xml',
+    'ttyx',
+    'resources/ttyx.gresource.xml',
     gresource_bundle: true,
     install: true,
     source_dir: 'resources/',
@@ -101,13 +101,13 @@ install_data(
 
 # Scripts
 install_data(
-    'scripts/tilix_int.sh',
+    'scripts/ttyx_int.sh',
     install_dir: pkgdatadir / 'scripts'
 )
 
 # Copying Nautilus extension
 install_data(
-    'nautilus/open-tilix.py',
+    'nautilus/open-ttyx.py',
     install_dir: datadir / 'nautilus-python' / 'extensions'
 )
 

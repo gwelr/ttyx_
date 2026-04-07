@@ -15,14 +15,14 @@ jobs:
     - uses: actions/checkout@v6
 
     - name: Create Build Environment
-      run: cd .github/ci/ && podman build -t tilix -f ./Dockerfile-debian-stable .
+      run: cd .github/ci/ && podman build -t ttyx -f ./Dockerfile-debian-stable .
 
     - name: Build
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build tilix
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
            ./.github/ci/run-build.sh
 
     - name: Test
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build tilix
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
            ./.github/ci/run-tests.sh
 
 
@@ -33,14 +33,14 @@ jobs:
     - uses: actions/checkout@v6
 
     - name: Create Build Environment
-      run: cd .github/ci/ && podman build -t tilix -f ./Dockerfile-debian-testing .
+      run: cd .github/ci/ && podman build -t ttyx -f ./Dockerfile-debian-testing .
 
     - name: Build
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build tilix
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
            ./.github/ci/run-build.sh
 
     - name: Test
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build tilix
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
            ./.github/ci/run-tests.sh
 
 
@@ -51,14 +51,14 @@ jobs:
     - uses: actions/checkout@v6
 
     - name: Create Build Environment
-      run: cd .github/ci/ && podman build -t tilix -f ./Dockerfile-ubuntu-noble .
+      run: cd .github/ci/ && podman build -t ttyx -f ./Dockerfile-ubuntu-noble .
 
     - name: Build
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build tilix
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
            ./.github/ci/run-build.sh
 
     - name: Test
-      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build tilix
+      run: podman run -t -e COMPILER_VENDOR=$CVENDOR -e CC=gcc -e CXX=g++ -v `pwd`:/build ttyx
            ./.github/ci/run-tests.sh
 
 

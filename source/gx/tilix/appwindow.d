@@ -234,7 +234,7 @@ private:
         nb.setShowTabs(false);
         nb.setShowBorder(false);
         if (useTabs) {
-            nb.getStyleContext().addClass("tilix-background");
+            nb.getStyleContext().addClass("ttyx-background");
             nb.setScrollable(true);
             nb.setGroupName("tilix");
             nb.addOnCreateWindow(&onCreateWindow);
@@ -289,13 +289,13 @@ private:
         hb = createHeaderBar();
 
         if (isQuake() || isCSDDisabled()) {
-            hb.getStyleContext().addClass("tilix-embedded-headerbar");
+            hb.getStyleContext().addClass("ttyx-embedded-headerbar");
             Box box = new Box(Orientation.VERTICAL, 0);
             box.add(hb);
             if (overlay !is null) box.add(overlay);
             else box.add(nb);
             if (isQuake()) {
-                box.getStyleContext().addClass("tilix-quake-frame");
+                box.getStyleContext().addClass("ttyx-quake-frame");
             }
             add(box);
             hb.setNoShowAll(hideToolbar());
@@ -367,12 +367,12 @@ private:
         mbSessionActions.add(iHamburger);
         mbSessionActions.setPopover(createPopover(mbSessionActions));
 
-        Button btnAddHorizontal = new Button("tilix-add-horizontal-symbolic", IconSize.MENU);
+        Button btnAddHorizontal = new Button("ttyx-add-horizontal-symbolic", IconSize.MENU);
         btnAddHorizontal.setDetailedActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SESSION_ADD_RIGHT));
         btnAddHorizontal.setFocusOnClick(false);
         btnAddHorizontal.setTooltipText(_("Add terminal right"));
 
-        Button btnAddVertical = new Button("tilix-add-vertical-symbolic", IconSize.MENU);
+        Button btnAddVertical = new Button("ttyx-add-vertical-symbolic", IconSize.MENU);
         btnAddVertical.setDetailedActionName(getActionDetailedName(ACTION_PREFIX, ACTION_SESSION_ADD_DOWN));
         btnAddVertical.setTooltipText(_("Add terminal down"));
         btnAddVertical.setFocusOnClick(false);
@@ -701,7 +701,7 @@ private:
         GMenu mPrefSection = new GMenu();
         mPrefSection.appendItem(new GMenuItem(_("Preferences"), getActionDetailedName(ACTION_PREFIX_APP, ACTION_PREFERENCES)));
         mPrefSection.appendItem(new GMenuItem(_("Keyboard Shortcuts"), getActionDetailedName(ACTION_PREFIX_APP, ACTION_SHORTCUTS)));
-        mPrefSection.append(_("About Tilix"), getActionDetailedName(ACTION_PREFIX_APP, ACTION_ABOUT));
+        mPrefSection.append(_("About ttyx_"), getActionDetailedName(ACTION_PREFIX_APP, ACTION_ABOUT));
 
 
         model.appendSection(null, mPrefSection);
@@ -1692,8 +1692,8 @@ public:
         gsSettings.addOnChanged(delegate(string key, GSettings) {
             applyPreference(key);
         });
-        setTitle(_("Tilix"));
-        setIconName("com.gexperts.Tilix");
+        setTitle(_("ttyx_"));
+        setIconName("io.github.gwelr.ttyx");
         setWindowStyle();
         loadRecentSessionFileList();
         gsSettings.addOnChanged(delegate(string key, GSettings) {
@@ -2130,7 +2130,7 @@ public:
 
         evNotifications = new EventBox();
         evNotifications.add(lblNotifications);
-        evNotifications.getStyleContext().addClass("tilix-notification-count");
+        evNotifications.getStyleContext().addClass("ttyx-notification-count");
 
         afNotifications = new AspectFrame(null, 0.5, 0.5, 1.0, false);
         afNotifications.setShadowType(ShadowType.NONE);
@@ -2203,7 +2203,7 @@ public:
         add(imgNewOutput);
 
 		button = new Button("window-close-symbolic", IconSize.MENU);
-        button.getStyleContext().addClass("tilix-small-button");
+        button.getStyleContext().addClass("ttyx-small-button");
 		button.setRelief(ReliefStyle.NONE);
 		button.setFocusOnClick(false);
         button.setTooltipText(_("Close session"));

@@ -23,19 +23,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
-  Modified and adapted from gnome-terminal for use with Tilix by Gerald Nunn
+  Modified and adapted from gnome-terminal for use with ttyx_ (forked from Tilix)
 -->
-<schemalist gettext-domain="Tilix">
+<schemalist gettext-domain="ttyx">
 
    <!-- Theme variants -->
-   <enum id='com.gexperts.Tilix.ThemeVariant'>
+   <enum id='io.github.gwelr.ttyx.ThemeVariant'>
     <value nick='system' value='0'/>
     <value nick='light'  value='1'/>
     <value nick='dark'   value='2'/>
   </enum>
 
   <!-- Background Image Options -->
-  <enum id='com.gexperts.Tilix.Background.Image.Mode'>
+  <enum id='io.github.gwelr.ttyx.Background.Image.Mode'>
     <value nick='scale' value='0'/>
     <value nick='tile' value='1'/>
     <value nick='center' value='2'/>
@@ -49,7 +49,7 @@
        results but at the expense of performance, particularly
        when re-sizing windows.
    -->
-  <enum id='com.gexperts.Tilix.Background.Image.Scale'>
+  <enum id='io.github.gwelr.ttyx.Background.Image.Scale'>
     <value nick='fast' value='0'/>
     <value nick='good' value='1'/>
     <value nick='best' value='2'/>
@@ -57,7 +57,7 @@
     <value nick='bilinear' value='4'/>
   </enum>
 
-  <enum id='com.gexperts.Tilix.Bell.Mode'>
+  <enum id='io.github.gwelr.ttyx.Bell.Mode'>
     <value nick='none' value='0'/>
     <value nick='sound' value='1'/>
     <value nick='icon' value='2'/>
@@ -65,7 +65,7 @@
   </enum>
 
   <!-- Second Instance Options -->
-  <enum id='com.gexperts.Tilix.NewInstance.Mode'>
+  <enum id='io.github.gwelr.ttyx.NewInstance.Mode'>
     <value nick='new-window' value ='0'/>
     <value nick='new-session' value ='1'/>
     <value nick='split-right' value ='2'/>
@@ -74,37 +74,37 @@
   </enum>
 
   <!-- Terminal Title Options -->
-  <enum id='com.gexperts.Tilix.Terminal.Title'>
+  <enum id='io.github.gwelr.ttyx.Terminal.Title'>
     <value nick='normal' value ='0'/>
     <value nick='small' value ='1'/>
     <value nick='none' value ='2'/>
   </enum>
 
   <!-- Cursor -->
-  <enum id='com.gexperts.Tilix.Cursor.BlinkMode'>
+  <enum id='io.github.gwelr.ttyx.Cursor.BlinkMode'>
     <value nick='system' value='0'/>
     <value nick='on' value='1'/>
     <value nick='off' value='2'/>
   </enum>
-  <enum id='com.gexperts.Tilix.Cursor.Shape'>
+  <enum id='io.github.gwelr.ttyx.Cursor.Shape'>
     <value nick='block' value='0'/>
     <value nick='ibeam' value='1'/>
     <value nick='underline' value='2'/>
   </enum>
 
-  <enum id='com.gexperts.Tilix.Text.BlinkMode'>
+  <enum id='io.github.gwelr.ttyx.Text.BlinkMode'>
     <value nick='never' value='0'/>
     <value nick='focused' value='1'/>
     <value nick='unfocused' value='2'/>
     <value nick='always' value='3'/>
   </enum>
 
-   <enum id='com.gexperts.Tilix.CJKWidth'>
+   <enum id='io.github.gwelr.ttyx.CJKWidth'>
     <value nick='narrow' value='1'/>
     <value nick='wide'   value='2'/>
   </enum>
 
-  <enum id='com.gexperts.Tilix.EraseBinding'>
+  <enum id='io.github.gwelr.ttyx.EraseBinding'>
     <value nick='auto' value='0'/>
     <value nick='ascii-backspace' value='1'/>
     <value nick='ascii-delete' value='2'/>
@@ -112,14 +112,14 @@
     <value nick='tty' value='4'/>
   </enum>
 
-  <enum id='com.gexperts.Tilix.ExitAction'>
+  <enum id='io.github.gwelr.ttyx.ExitAction'>
     <value nick='close' value='0'/>
     <value nick='restart' value='1'/>
     <value nick='hold' value='2'/>
   </enum>
 
   <!-- Quadrant enum, used for badge position -->
-  <enum id='com.gexperts.Tilix.Quadrant'>
+  <enum id='io.github.gwelr.ttyx.Quadrant'>
     <value nick='northwest' value = '0'/>
     <value nick='northeast' value = '1'/>
     <value nick='southwest' value = '2'/>
@@ -127,7 +127,7 @@
   </enum>
 
   <!-- Alignment enum -->
-  <enum id='com.gexperts.Tilix.Alignment'>
+  <enum id='io.github.gwelr.ttyx.Alignment'>
     <value nick='left' value = '0'/>
     <value nick='center' value = '1'/>
     <value nick='right' value = '2'/>
@@ -141,7 +141,7 @@
   </enum>
 
   <!-- Position enum, used for tab position -->
-  <enum id='com.gexperts.Tilix.Position'>
+  <enum id='io.github.gwelr.ttyx.Position'>
     <value nick='left' value = '0'/>
     <value nick='right' value = '1'/>
     <value nick='top' value = '2'/>
@@ -149,13 +149,13 @@
   </enum>
 
   <!-- Position enum, used for quake position -->
-  <enum id='com.gexperts.Tilix.QuakePosition'>
+  <enum id='io.github.gwelr.ttyx.QuakePosition'>
     <value nick='top' value = '0'/>
     <value nick='bottom' value = '1'/>
   </enum>
 
   <!-- Global settings -->
-  <schema id="com.gexperts.Tilix.Settings" path="/com/gexperts/Tilix/">
+  <schema id="io.github.gwelr.ttyx.Settings" path="/io/github/gwelr/ttyx/">
 
     <key name="window-state" type="i">
       <default>0</default>
@@ -212,7 +212,7 @@
       <summary>Whether transparency is enabled</summary>
       <description>If true, transparency is enabled in terminals.</description>
     </key>
-    <key name="terminal-title-style" enum="com.gexperts.Tilix.Terminal.Title">
+    <key name="terminal-title-style" enum="io.github.gwelr.ttyx.Terminal.Title">
       <default>'normal'</default>
       <summary>The style to use for terminal titles</summary>
       <description>Which style to use for terminal titles, normal, small or none.</description>
@@ -238,12 +238,12 @@
       <description>If true, uses an overlay scrollbar instead of a separate widget if GTK is 3.22 or greater.</description>
     </key>
     <!-- Dark Theme -->
-    <key name="theme-variant" enum="com.gexperts.Tilix.ThemeVariant">
+    <key name="theme-variant" enum="io.github.gwelr.ttyx.ThemeVariant">
       <default>'system'</default>
       <summary>Which theme variant to use</summary>
     </key>
     <!-- Second Instance Options -->
-    <key name="new-instance-mode" enum="com.gexperts.Tilix.NewInstance.Mode">
+    <key name="new-instance-mode" enum="io.github.gwelr.ttyx.NewInstance.Mode">
         <default>'new-window'</default>
         <summary>Default behavior when opening a second instance of Tilix</summary>
     </key>
@@ -366,12 +366,12 @@
       <summary>Path of the background image</summary>
       <description>The path of the image to use for the background, requires transparency support.</description>
     </key>
-    <key name="background-image-mode" enum="com.gexperts.Tilix.Background.Image.Mode">
+    <key name="background-image-mode" enum="io.github.gwelr.ttyx.Background.Image.Mode">
       <default>'scale'</default>
       <summary>The mode to use when rendering the background image</summary>
       <description>Whether the background image is rendered scaled, tiled or centered in Tilix.</description>
     </key>
-    <key name="background-image-scale" enum="com.gexperts.Tilix.Background.Image.Scale">
+    <key name="background-image-scale" enum="io.github.gwelr.ttyx.Background.Image.Scale">
       <default>'bilinear'</default>
       <summary>The algorithm to use when scaling the background image</summary>
       <description>The cairo filter algorithm used to scale the background image, performance will deteroriate with higher quality.</description>
@@ -436,7 +436,7 @@
       <summary>Delay used to hide the quake window when focus is lost</summary>
       <description>Delay used to hide the quake window so that quick changes in focus do not hide the window.</description>
     </key>
-    <key name="quake-alignment" enum="com.gexperts.Tilix.Alignment">
+    <key name="quake-alignment" enum="io.github.gwelr.ttyx.Alignment">
       <default>'center'</default>
       <summary>The alignment of the quake window</summary>
       <description>The alignment of the quake window when the width is less then 100%.</description>
@@ -446,7 +446,7 @@
       <summary>Hide the headerbar when running in quake mode</summary>
       <description>When true, the headerbar of the quake window will be hidden.</description>
     </key>
-    <key name="quake-tab-position" enum="com.gexperts.Tilix.Position">
+    <key name="quake-tab-position" enum="io.github.gwelr.ttyx.Position">
       <default>'top'</default>
       <summary>The position where the tabs are displayed in Quake mode</summary>
       <description>Determines where the tabs are displayed relative to the notebook in quake mode.</description>
@@ -456,7 +456,7 @@
       <summary>When true the quake window is always kept on top</summary>
       <description>When true, the quake window will be kept on top of all other windows.</description>
     </key>
-    <key name="quake-window-position" enum="com.gexperts.Tilix.QuakePosition">
+    <key name="quake-window-position" enum="io.github.gwelr.ttyx.QuakePosition">
       <default>'top'</default>
       <summary>The position where the window is displayed in Quake mode</summary>
       <description>Determines where the window is displayed relative to the screen in quake mode.</description>
@@ -537,7 +537,7 @@
       <summary>When true tabs are shown instead of the sidebar</summary>
       <description>If true, notebook tabs are used instead of the sidebar as the UI metaphor for sessions.</description>
     </key>
-    <key name="tab-position" enum="com.gexperts.Tilix.Position">
+    <key name="tab-position" enum="io.github.gwelr.ttyx.Position">
       <default>'top'</default>
       <summary>The position where the tabs are displayed</summary>
       <description>Determines where the tabs are displayed relative to the notebook.</description>
@@ -546,7 +546,7 @@
 
   <!-- SettingsList base schema -->
 
-  <schema id="com.gexperts.Tilix.SettingsList">
+  <schema id="io.github.gwelr.ttyx.SettingsList">
     <key name="list" type="as">
       <default>[]</default>
     </key>
@@ -557,16 +557,16 @@
 
   <!-- Profiles list schema -->
 
-  <schema id="com.gexperts.Tilix.ProfilesList"
-          extends="com.gexperts.Tilix.SettingsList"
-          path="/com/gexperts/Tilix/profiles/">
+  <schema id="io.github.gwelr.ttyx.ProfilesList"
+          extends="io.github.gwelr.ttyx.SettingsList"
+          path="/io/github/gwelr/ttyx/profiles/">
     <override name="list">['2b7c4080-0ddd-46c5-8f23-563fd3ba789d']</override>
     <override name="default">'2b7c4080-0ddd-46c5-8f23-563fd3ba789d'</override>
   </schema>
 
   <!-- A terminal profile -->
 
-  <schema id="com.gexperts.Tilix.Profile">
+  <schema id="io.github.gwelr.ttyx.Profile">
     <key name="visible-name" type="s">
       <default l10n="messages" context="visible-name">'Unnamed'</default>
       <summary>Human-readable name of the profile</summary>
@@ -598,21 +598,21 @@
       <default>1.0</default>
       <summary>Scale factor for the cell width to increase letter spacing. (Does not increase the font’s width.)</summary>
     </key>
-    <key name="cursor-blink-mode" enum="com.gexperts.Tilix.Cursor.BlinkMode">
+    <key name="cursor-blink-mode" enum="io.github.gwelr.ttyx.Cursor.BlinkMode">
       <default>'system'</default>
       <summary>Whether to blink the cursor</summary>
       <description>The possible values are "system" to use the global cursor blinking settings, or "on" or "off" to set the mode explicitly.</description>
     </key>
-    <key name="cursor-shape" enum="com.gexperts.Tilix.Cursor.Shape">
+    <key name="cursor-shape" enum="io.github.gwelr.ttyx.Cursor.Shape">
       <default>'block'</default>
       <summary>The cursor appearance</summary>
     </key>
-    <key name="text-blink-mode" enum="com.gexperts.Tilix.Text.BlinkMode">
+    <key name="text-blink-mode" enum="io.github.gwelr.ttyx.Text.BlinkMode">
       <default>'always'</default>
       <summary>Whether to enable blinking text</summary>
       <description>The possible values are "never" to disable text blinking, "always" to enable, or "focused" or "unfocused" to set the mode explicitly.</description>
     </key>
-    <key name="terminal-bell" enum="com.gexperts.Tilix.Bell.Mode">
+    <key name="terminal-bell" enum="io.github.gwelr.ttyx.Bell.Mode">
       <default>'sound'</default>
       <summary>What to do when a bell signal is emitted in a terminal</summary>
       <description>Determines whether to do nothing, play a sound, show an icon or do both when a bell signal is emitted.</description>
@@ -747,15 +747,15 @@
       <description>If true, whenever there's new output the terminal will scroll to the bottom.</description>
     </key>
     <!-- Compatibility -->
-    <key name="backspace-binding" enum="com.gexperts.Tilix.EraseBinding">
+    <key name="backspace-binding" enum="io.github.gwelr.ttyx.EraseBinding">
       <default>'ascii-delete'</default>
       <summary>The code sequence the Backspace key generates</summary>
     </key>
-    <key name="delete-binding" enum="com.gexperts.Tilix.EraseBinding">
+    <key name="delete-binding" enum="io.github.gwelr.ttyx.EraseBinding">
       <default>'delete-sequence'</default>
       <summary>The code sequence the Delete key generates</summary>
     </key>
-    <key name="cjk-utf8-ambiguous-width" enum="com.gexperts.Tilix.CJKWidth">
+    <key name="cjk-utf8-ambiguous-width" enum="io.github.gwelr.ttyx.CJKWidth">
       <default>'narrow'</default>
       <summary>Whether ambiguous-width characters are narrow or wide when using UTF-8 encoding</summary>
     </key>
@@ -771,7 +771,7 @@
       <description>Set of characters which will be considered parts of a word when doing word-wise selection, in addition to the default which only considers alphanumeric characters part of a word.</description>
     </key>
     <!-- Command Tab Options -->
-    <key name="exit-action" enum="com.gexperts.Tilix.ExitAction">
+    <key name="exit-action" enum="io.github.gwelr.ttyx.ExitAction">
       <default>'close'</default>
       <summary>What to do with the terminal when the child command exits</summary>
       <description>Possible values are "close" to close the terminal, "restart" to restart the command, and "hold" to keep the terminal open with no command running inside.</description>
@@ -896,7 +896,7 @@
       <summary>Whether to use custom badge color</summary>
       <description>If true, use the badge color from the profile.</description>
     </key>
-    <key name="badge-position" enum="com.gexperts.Tilix.Quadrant">
+    <key name="badge-position" enum="io.github.gwelr.ttyx.Quadrant">
       <default>'northeast'</default>
       <summary>The position where the badge is displayed</summary>
       <description>Determines the position based on quadrants whre the badge is rendered in the terminal.</description>
@@ -945,7 +945,7 @@
     friendly descriptors to users in the GUI that allows modifying these names.
   -->
 
-  <schema id="com.gexperts.Tilix.Keybindings" path="/com/gexperts/Tilix/keybindings/">
+  <schema id="io.github.gwelr.ttyx.Keybindings" path="/io/github/gwelr/ttyx/keybindings/">
     <key name="app-new-window" type="s">
       <default>'&lt;Shift&gt;&lt;Ctrl&gt;N'</default>
       <summary>Keyboard shortcut to create a new window</summary>

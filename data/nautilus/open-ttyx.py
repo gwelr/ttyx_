@@ -21,11 +21,11 @@ if hasattr(Nautilus, "LocationWidgetProvider"):
     from gi.repository import Gtk
 
 
-TERMINAL = shutil.which("tilix")
-TILIX_KEYBINDINGS = "com.gexperts.Tilix.Keybindings"
+TERMINAL = shutil.which("ttyx")
+TTYX_KEYBINDINGS = "io.github.gwelr.ttyx.Keybindings"
 GSETTINGS_OPEN_TERMINAL = "nautilus-open"
 REMOTE_URI_SCHEME = ['ftp', 'sftp']
-textdomain("tilix")
+textdomain("ttyx")
 _ = gettext
 
 def _checkdecode(s):
@@ -45,8 +45,8 @@ if hasattr(Nautilus, "LocationWidgetProvider"):
 
         def __init__(self):
             source = Gio.SettingsSchemaSource.get_default()
-            if source.lookup(TILIX_KEYBINDINGS, True):
-                self._gsettings = Gio.Settings.new(TILIX_KEYBINDINGS)
+            if source.lookup(TTYX_KEYBINDINGS, True):
+                self._gsettings = Gio.Settings.new(TTYX_KEYBINDINGS)
                 self._gsettings.connect("changed", self._bind_shortcut)
                 self._create_accel_group()
             self._window = None

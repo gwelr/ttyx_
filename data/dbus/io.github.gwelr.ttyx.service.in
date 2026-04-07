@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=io.github.gwelr.ttyx
+Exec=@bindir@/ttyx --gapplication-service

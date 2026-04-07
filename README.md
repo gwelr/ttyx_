@@ -1,10 +1,14 @@
 ![Build Status](https://github.com/gwelr/tilix/workflows/Build%20Test/badge.svg)
 
-# ttylix
+<p align="center">
+  <img src="data/hey-ttyx.svg" alt="ttyx_ logo" width="128">
+</p>
+
+# ttyx_
 
 **Tilix, but with a pulse.**
 
-ttylix is an actively maintained fork of [Tilix](https://github.com/gnunn1/tilix), the tiling terminal emulator for Linux. The original project did amazing work — but with development stalled and a growing list of unaddressed bugs, ttylix picks up where it left off.
+ttyx_ is an actively maintained fork of [Tilix](https://github.com/gnunn1/tilix), the tiling terminal emulator for Linux. The original project did amazing work — but with development stalled and a growing list of unaddressed bugs, ttyx_ picks up where it left off.
 
 Same great terminal. Fresh fixes, new features, and someone actually reading the issues.
 
@@ -44,7 +48,7 @@ Same great terminal. Fresh fixes, new features, and someone actually reading the
 
 ## Building
 
-ttylix is written in [D](https://dlang.org/) using GTK 3 and the GtkD bindings.
+ttyx_ is written in [D](https://dlang.org/) using GTK 3 and the GtkD bindings.
 
 ### With Meson (recommended)
 
@@ -83,7 +87,7 @@ No support is provided.
 
 ## Credits
 
-ttylix is built on the shoulders of [Tilix](https://github.com/gnunn1/tilix) by Gerald Nunn and its contributors. Huge thanks to everyone who made the original project what it is.
+ttyx_ is built on the shoulders of [Tilix](https://github.com/gnunn1/tilix) by Gerald Nunn and its contributors. Huge thanks to everyone who made the original project what it is.
 
 ## License
 

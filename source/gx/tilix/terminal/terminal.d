@@ -142,6 +142,7 @@ import gx.tilix.encoding;
 import gx.tilix.preferences;
 import gx.tilix.terminal.actions;
 import gx.tilix.terminal.advpaste;
+import gx.tilix.terminal.context;
 import gx.tilix.terminal.exvte;
 import gx.tilix.terminal.layout;
 import gx.tilix.terminal.password;
@@ -164,7 +165,7 @@ import gx.tilix.terminal.activeprocess;
  * various event handlers defined in this Terminal widget. Note these event handlers
  * do not correspond to GTK signals, they are pure D code.
  */
-class Terminal : EventBox, ITerminal {
+class Terminal : EventBox, ITerminal, ITerminalContext {
 
 private:
 
@@ -4258,6 +4259,16 @@ public:
     @property string uuid() {
         return _terminalUUID;
     }
+
+// ITerminalContext implementation
+public:
+    @property ExtendedVTE contextVte() { return vte; }
+    @property GSettings contextGsSettings() { return gsSettings; }
+    @property GSettings contextGsProfile() { return gsProfile; }
+    @property GSettings contextGsShortcuts() { return gsShortcuts; }
+    @property GlobalTerminalState terminalState() { return gst; }
+    @property string terminalUUID() { return _terminalUUID; }
+    @property Widget toplevelWidget() { return getToplevel(); }
 
 // Events
 public:

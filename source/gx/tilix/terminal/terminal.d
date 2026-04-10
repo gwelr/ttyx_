@@ -144,6 +144,7 @@ import gx.tilix.terminal.actions;
 import gx.tilix.terminal.advpaste;
 import gx.tilix.terminal.clipboard;
 import gx.tilix.terminal.context;
+import gx.tilix.terminal.process;
 import gx.tilix.terminal.exvte;
 import gx.tilix.terminal.flatpak;
 import gx.tilix.terminal.layout;
@@ -179,6 +180,7 @@ private:
 
     TerminalWindowState terminalWindowState = TerminalWindowState.NORMAL;
     ClipboardHandler clipboardHandler;
+    TerminalProcessQuery processQuery;
     Button btnMaximize;
 
     SearchRevealer rFind;
@@ -628,7 +630,7 @@ private:
         //Close Terminal Action
         registerActionWithSettings(group, ACTION_PREFIX, ACTION_CLOSE, gsShortcuts, delegate(GVariant, SimpleAction) {
             string name;
-            if (isProcessRunning(name)) {
+            if (processQuery.isProcessRunning(gpid, name)) {
                 ProcessInformation pi = ProcessInformation(ProcessInfoSource.TERMINAL, (name.length > 0? name: getDisplayText("")), uuid, []);
                 if (!promptCanCloseProcesses(gsSettings, cast(Window)getToplevel(), pi)) return;
             }
@@ -973,7 +975,7 @@ private:
                     // If we are have notifications enabled, only show notification if process is
                     // running, otherwise let normal process finished do it's magic
                     bool commandNotification = checkVTEFeature(TerminalFeature.EVENT_NOTIFICATION) && gsSettings.getBoolean(SETTINGS_NOTIFY_ON_PROCESS_COMPLETE_KEY);
-                    if (!commandNotification || (commandNotification && isProcessRunning())) {
+                    if (!commandNotification || (commandNotification && processQuery.isProcessRunning(gpid))) {
                         glong cursorCol, cursorRow;
                         vte.getCursorPosition(cursorCol, cursorRow);
                         if (cursorRow > 0) cursorRow--;
@@ -3543,6 +3545,7 @@ public:
         trace("Apply preferences");
         applyPreferences();
         clipboardHandler = new ClipboardHandler(this, this, &scrollToBottom, &focusTerminal);
+        processQuery = new TerminalProcessQuery(this);
         trace("Profile Event Handler");
         gsProfileChangedHandlerId = gsProfile.addOnChanged(delegate(string key, Settings) {
             applyPreference(key);
@@ -3706,72 +3709,14 @@ public:
         }
     }
 
-    pid_t getChildPidFromHost() {
-        string result = captureHostToolboxCommand("get-child-pid", "", [vte.getPty().getFd()]);
-        if (result == null) {
-            warning("Failed to get child pid from host");
-            return -1;
-        }
-
-        return to!pid_t(result);
-    }
-
+    /* Process query logic moved to gx.tilix.terminal.process.TerminalProcessQuery.
+     * These wrappers maintain the public API used by session.d. */
     bool isProcessRunning() {
-        pid_t dummy;
-        return isProcessRunning(dummy);
+        return processQuery.isProcessRunning(gpid);
     }
 
-    /**
-     * Determines if a child process is running in the terminal,
-     * and returns the pid
-     */
-    bool isProcessRunning(out pid_t childPid) {
-        if (vte.getPty() is null)
-            return false;
-
-        if (isFlatpak()) {
-            childPid = getChildPidFromHost();
-        } else {
-            childPid = vte.getChildPid();
-        }
-
-        tracef("childPid=%d gpid=%d", childPid, gpid);
-        return (childPid != -1 && childPid != gpid);
-    }
-
-    /**
-     * Determines if a child process is running in the terminal,
-     * returns the name
-     */
     bool isProcessRunning(out string name) {
-        // TODO: be correct for flatpak sandbox
-        if (vte.getPty() is null)
-            return false;
-        pid_t childPid;
-        bool result = isProcessRunning(childPid);
-
-        if (childPid == -1) {
-            return false;
-        }
-
-        import std.file: read, FileException;
-        try {
-            string data;
-            if (isFlatpak()) {
-                data = captureHostToolboxCommand("get-proc-stat", to!string(childPid), []);
-            } else {
-                data = to!string(cast(char[])read(format("/proc/%d/stat", childPid)));
-            }
-
-            size_t rpar = data.lastIndexOf(")");
-            name = data[data.indexOf("(") + 1..rpar];
-        } catch (FileException fe) {
-            name = _("Unknown");
-            warning(fe);
-        }
-        name = replace(name, "\0", " ");
-
-        return result;
+        return processQuery.isProcessRunning(gpid, name);
     }
 
     /**

@@ -4,12 +4,16 @@
  */
 module gx.tilix.terminal.context;
 
+private:
+
 import gio.Settings : GSettings = Settings;
 
 import gtk.Widget;
 
 import gx.tilix.terminal.exvte;
 import gx.tilix.terminal.state;
+
+package:
 
 /**
  * Interface providing access to shared terminal state.

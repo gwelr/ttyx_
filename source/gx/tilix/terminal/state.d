@@ -4,33 +4,41 @@
  */
 module gx.tilix.terminal.state;
 
+private:
+
 import std.conv;
 import std.experimental.logger;
 
 import core.sys.posix.unistd : gethostname;
 
-/**
- * Struct for remembering terminal state, used to track
- * local and remote (i.e. SSH) states.
- */
+package:
+
+/// Struct for remembering terminal state, used to track local and remote (i.e. SSH) states.
 struct TerminalState {
+    /// Current hostname (local machine or SSH remote).
     string hostname;
+    /// Current working directory.
     string directory;
+    /// Current username.
     string username;
 
+    /// Reset all fields to empty.
     void clear() {
         hostname.length = 0;
         directory.length = 0;
         username.length = 0;
     }
 
+    /// Returns true if any field has been set.
     bool hasState() {
         return (hostname.length > 0 || directory.length > 0 || username.length > 0);
     }
 }
 
+/// Distinguishes local vs remote terminal state.
 enum TerminalStateType {LOCAL, REMOTE}
 
+/// Tracks local and remote hostname/directory/username for a terminal.
 class GlobalTerminalState {
 private:
     TerminalState local;

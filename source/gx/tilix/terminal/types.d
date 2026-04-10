@@ -5,11 +5,14 @@
 module gx.tilix.terminal.types;
 
 import gdk.Event;
+import gx.tilix.preferences;
 
-/**
- * When dragging over VTE, specifies which quadrant new terminal
- * should snap to
- */
+/************************************************************************
+ * Public types — used by session.d and other packages
+ ***********************************************************************/
+public:
+
+/// When dragging over VTE, specifies which quadrant new terminal should snap to.
 enum DragQuadrant {
     LEFT,
     TOP,
@@ -17,14 +20,13 @@ enum DragQuadrant {
     BOTTOM
 }
 
-/**
- * The window state of the terminal
- */
+/// The window state of the terminal.
 enum TerminalWindowState {
     NORMAL,
     MAXIMIZED
 }
 
+/// Type of synchronized input event between terminals.
 enum SyncInputEventType {
     INSERT_TERMINAL_NUMBER,
     INSERT_TEXT,
@@ -33,62 +35,55 @@ enum SyncInputEventType {
     RESET_AND_CLEAR
 }
 
+/// Payload for synchronized input events between terminals.
 struct SyncInputEvent {
+    /// UUID of the terminal that originated this event.
     string senderUUID;
+    /// The type of synchronization event.
     SyncInputEventType eventType;
+    /// Raw keyboard event, set for KEY_PRESS events, null otherwise.
     Event event;
+    /// Text content to insert, set for INSERT_TEXT events (paste, password, typed input), null otherwise.
     string text;
 }
 
-/**
- * Constants used in Event.key.sendEvent to flag particular situations
- */
+/************************************************************************
+ * Package-private types — used only within the terminal package
+ ***********************************************************************/
+package:
+
+/// Constants used in Event.key.sendEvent to flag particular situations.
 enum SendEvent {
     NONE = 0,
     SYNC = 1,
     NATURAL_COPY = 2
 }
 
-/************************************************************************
- * Drag and Drop types
- ***********************************************************************/
-
-/**
- * Constant used to identify terminal drag and drop
- */
+/// Constant used to identify terminal drag and drop.
 enum VTE_DND = "vte";
 
-/**
- * List of available Drop Targets for VTE
- */
+/// List of available Drop Targets for VTE.
 enum DropTargets {
     URILIST,
     STRING,
     UTF8_TEXT,
     TEXT,
     COLOR,
-    /**
-     * Used when one VTE is dropped on another
-     */
+    /// Used when one VTE is dropped on another.
     VTE,
-    /**
-     * Used when session is dropped on terminal
-     */
+    /// Used when session is dropped on terminal.
     SESSION
 }
 
+/// Tracks active drag state within a terminal.
 struct DragInfo {
+    /// Whether a drag operation is currently in progress.
     bool isDragActive;
+    /// The quadrant where the drop would occur.
     DragQuadrant dq;
 }
 
-/************************************************************************
- * Trigger types
- ***********************************************************************/
-
-import std.regex;
-import gx.tilix.preferences;
-
+/// Actions that can be triggered by terminal regex triggers.
 enum TriggerAction {
     UPDATE_STATE,
     EXECUTE_COMMAND,
@@ -101,16 +96,21 @@ enum TriggerAction {
     RUN_PROCESS
 }
 
-/**
- * Class that holds definition of trigger including compiled regex
- */
+private:
+
+import std.regex;
+
+package:
+
+/// Holds definition of a trigger including its compiled regex.
 class TerminalTrigger {
-
-public:
-
+    /// The regex pattern string as defined by the user.
     string pattern;
+    /// The action to perform when the trigger matches.
     TriggerAction action;
+    /// Action-specific parameters (e.g. command to execute, text to send).
     string parameters;
+    /// Compiled regex for matching against VTE buffer content.
     Regex!char compiledRegex;
 
     this(string pattern, string actionName, string parameters) {
@@ -148,21 +148,22 @@ public:
                 break;
         }
 
-        //Triggers always use multi-line mode since we are getting a buffer from VTE
+        // Triggers always use multi-line mode since we are getting a buffer from VTE
         compiledRegex = regex(pattern, "m");
     }
 }
 
+/// Match result from a terminal trigger.
 struct TerminalTriggerMatch {
+    /// The trigger that matched.
     TerminalTrigger trigger;
+    /// Captured regex groups from the match.
     string[] groups;
+    /// Position of the match within the buffer.
     size_t index;
 }
 
-/************************************************************************
- * Terminal serialization constants
- ***********************************************************************/
-
+/// Terminal serialization node keys.
 enum NODE_OVERRIDE_CMD = "overrideCommand";
 enum NODE_BADGE = "badge";
 enum NODE_TITLE = "title";

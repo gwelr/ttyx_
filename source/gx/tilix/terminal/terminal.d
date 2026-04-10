@@ -142,6 +142,7 @@ import gx.tilix.encoding;
 import gx.tilix.preferences;
 import gx.tilix.terminal.actions;
 import gx.tilix.terminal.advpaste;
+import gx.tilix.terminal.clipboard;
 import gx.tilix.terminal.context;
 import gx.tilix.terminal.exvte;
 import gx.tilix.terminal.flatpak;
@@ -166,7 +167,7 @@ import gx.tilix.terminal.activeprocess;
  * various event handlers defined in this Terminal widget. Note these event handlers
  * do not correspond to GTK signals, they are pure D code.
  */
-class Terminal : EventBox, ITerminal, ITerminalContext {
+class Terminal : EventBox, ITerminal, ITerminalContext, ISyncInputEmitter {
 
 private:
 
@@ -177,6 +178,7 @@ private:
     mixin ProcessNotificationHandler;
 
     TerminalWindowState terminalWindowState = TerminalWindowState.NORMAL;
+    ClipboardHandler clipboardHandler;
     Button btnMaximize;
 
     SearchRevealer rFind;
@@ -255,7 +257,7 @@ private:
 
     //Whether to ignore unsafe paste, basically when
     //option is turned on but user opts to ignore it for this terminal
-    bool unsafePasteIgnored;
+    /* unsafePasteIgnored moved to ClipboardHandler */
 
     GlobalTerminalState gst;
 
@@ -504,7 +506,7 @@ private:
         //Clipboard actions
         saCopy = registerActionWithSettings(group, ACTION_PREFIX, ACTION_COPY, gsShortcuts, delegate(GVariant, SimpleAction) {
             if (vte.getHasSelection()) {
-                copyToClipboard();
+                clipboardHandler.copyToClipboard();
             }
         });
         if (checkVTEVersion(VTE_VERSION_COPY_AS_HTML)) {
@@ -526,9 +528,9 @@ private:
                 }
             }
             if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
-                advancedPaste(GDK_SELECTION_CLIPBOARD);
+                clipboardHandler.advancedPaste(GDK_SELECTION_CLIPBOARD);
             } else {
-                paste(GDK_SELECTION_CLIPBOARD);
+                clipboardHandler.paste(GDK_SELECTION_CLIPBOARD);
             }
         });
 
@@ -543,15 +545,15 @@ private:
                 }
             }
             if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
-                advancedPaste(GDK_SELECTION_PRIMARY);
+                clipboardHandler.advancedPaste(GDK_SELECTION_PRIMARY);
             } else {
-                paste(GDK_SELECTION_PRIMARY);
+                clipboardHandler.paste(GDK_SELECTION_PRIMARY);
             }
         });
 
         saAdvancedPaste = registerActionWithSettings(group, ACTION_PREFIX, ACTION_ADVANCED_PASTE, gsShortcuts, delegate(GVariant, SimpleAction) {
             if (Clipboard.get(null).waitIsTextAvailable()) {
-                advancedPaste(GDK_SELECTION_CLIPBOARD);
+                clipboardHandler.advancedPaste(GDK_SELECTION_CLIPBOARD);
             }
         });
 
@@ -1058,7 +1060,7 @@ private:
             if (vte is null) return;
 
             if (vte.getHasSelection() && gsSettings.getBoolean(SETTINGS_COPY_ON_SELECT_KEY)) {
-                copyToClipboard();
+                clipboardHandler.copyToClipboard();
             }
         });
 
@@ -1183,9 +1185,7 @@ private:
         return box;
     }
 
-    bool isSynchronizedInput() {
-        return _synchronizeInput && _synchronizeInputOverride;
-    }
+    /* isSynchronizedInput moved to ISyncInputEmitter implementation */
 
     void showBell() {
         string value = gsProfile.getString(SETTINGS_PROFILE_TERMINAL_BELL_KEY);
@@ -1417,108 +1417,8 @@ private:
         }
     }
 
-    /**
-     * Tests if the paste is unsafe, currently just looks for sudo and
-     * carriage return.
-     */
-    bool isPasteUnsafe(string text) {
-        return (text.indexOf("sudo") > -1) && (text.indexOf("\n") > -1);
-    }
-
-    void advancedPaste(GdkAtom source) {
-        string pasteText = Clipboard.get(source).waitForText();
-        if (pasteText.length == 0) return;
-        if (pasteText.indexOf("\n") < 0) return paste(source);
-
-        AdvancedPasteDialog dialog = new AdvancedPasteDialog(cast(Window) getToplevel(), pasteText, isPasteUnsafe(pasteText));
-        scope(exit) {
-            dialog.hide();
-            dialog.destroy();
-        }
-        dialog.showAll();
-        if (dialog.run() == ResponseType.APPLY) {
-            pasteText = dialog.text;
-            vtePasteText(vte, pasteText[0 .. $]);
-            if (gsProfile.getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
-                scrollToBottom();
-            }
-            static if (!USE_COMMIT_SYNCHRONIZATION) {
-                if (isSynchronizedInput()) {
-                    SyncInputEvent se = SyncInputEvent(_terminalUUID, SyncInputEventType.INSERT_TEXT, null, pasteText);
-                    onSyncInput.emit(this, se);
-                }
-            }
-        }
-        focusTerminal();
-    }
-
-    void copyToClipboard() {
-        import gtk.Clipboard : Clipboard;
-
-        vte.copyClipboard();
-        if (gsSettings.getBoolean(SETTINGS_COPY_STRIP_TRAILING_WHITESPACE)) {
-            Clipboard cb = Clipboard.get(GDK_SELECTION_CLIPBOARD);
-            string text = cb.waitForText();
-            if (text !is null && text.length > 0) {
-                import std.array : join;
-                string[] lines;
-                foreach (line; text.splitLines()) {
-                    lines ~= line.stripRight();
-                }
-                string stripped = lines.join("\n");
-                if (stripped.length > 0) {
-                    cb.setText(stripped, cast(int) stripped.length);
-                }
-            }
-        }
-    }
-
-    void paste(GdkAtom source) {
-
-        string pasteText = Clipboard.get(source).waitForText();
-
-        bool stripTrailingWhitespace = gsSettings.getBoolean(SETTINGS_STRIP_TRAILING_WHITESPACE);
-        if (stripTrailingWhitespace) {
-            pasteText = pasteText.stripRight();
-        }
-
-        if (pasteText.length == 0) return;
-
-        // Don't check for unsafe paste if doing sync input, original paste checked it
-        if (isPasteUnsafe(pasteText)) {
-            if (!unsafePasteIgnored && gsSettings.getBoolean(SETTINGS_UNSAFE_PASTE_ALERT_KEY)) {
-                UnsafePasteDialog dialog = new UnsafePasteDialog(cast(Window) getToplevel(), chomp(pasteText));
-                scope (exit) {
-                    dialog.destroy();
-                }
-                if (dialog.run() == 0)
-                    unsafePasteIgnored = true;
-                else
-                    return;
-            }
-        }
-
-        if (gsSettings.getBoolean(SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY) && pasteText.length > 0 && (pasteText[0] == '#' || pasteText[0] == '$')) {
-            pasteText = pasteText[1 .. $];
-            vtePasteText(vte, pasteText);
-        } else if (stripTrailingWhitespace) {
-            vtePasteText(vte, pasteText);
-        } else if (source == GDK_SELECTION_CLIPBOARD) {
-            vte.pasteClipboard();
-        } else {
-            vte.pastePrimary();
-        }
-
-        if (gsProfile.getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
-            scrollToBottom();
-        }
-        static if (!USE_COMMIT_SYNCHRONIZATION) {
-            if (isSynchronizedInput()) {
-                SyncInputEvent se = SyncInputEvent(_terminalUUID, SyncInputEventType.INSERT_TEXT, null, pasteText);
-                onSyncInput.emit(this, se);
-            }
-        }
-    }
+    /* Clipboard operations (paste, advancedPaste, copyToClipboard, isPasteUnsafe)
+     * moved to gx.tilix.terminal.clipboard.ClipboardHandler */
 
     void notifyTerminalRequestMove(string srcUUID, Terminal dest, DragQuadrant dq) {
         onRequestMove.emit(srcUUID, dest, dq);
@@ -1981,9 +1881,9 @@ private:
             case MouseButton.MIDDLE:
                 widget.grabFocus();
                 if (gsSettings.getBoolean(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY)) {
-                    advancedPaste(GDK_SELECTION_PRIMARY);
+                    clipboardHandler.advancedPaste(GDK_SELECTION_PRIMARY);
                 } else {
-                    paste(GDK_SELECTION_PRIMARY);
+                    clipboardHandler.paste(GDK_SELECTION_PRIMARY);
                 }
                 return true;
             default:
@@ -3642,6 +3542,7 @@ public:
         createUI();
         trace("Apply preferences");
         applyPreferences();
+        clipboardHandler = new ClipboardHandler(this, this, &scrollToBottom, &focusTerminal);
         trace("Profile Event Handler");
         gsProfileChangedHandlerId = gsProfile.addOnChanged(delegate(string key, Settings) {
             applyPreference(key);
@@ -4077,6 +3978,16 @@ public:
     @property string terminalUUID() { return _terminalUUID; }
     @property Widget toplevelWidget() { return getToplevel(); }
 
+// ISyncInputEmitter implementation
+public:
+    @property bool isSynchronizedInput() {
+        return _synchronizeInput && _synchronizeInputOverride;
+    }
+
+    void emitSyncInput(SyncInputEvent event) {
+        onSyncInput.emit(this, event);
+    }
+
 // Events
 public:
     /**
@@ -4177,52 +4088,7 @@ public:
 
 
 
-/**
- * This feature has been copied from Pantheon Terminal and
- * translated from Vala to D. Thanks to Pantheon and Ikey Doherty for this.
- *
- * http://bazaar.launchpad.net/~elementary-apps/pantheon-terminal/trunk/view/head:/src/UnsafePasteDialog.vala
- */
-package class UnsafePasteDialog : MessageDialog {
-
-public:
-
-    this(Window parent, string cmd) {
-        super(parent, DialogFlags.MODAL, MessageType.WARNING, ButtonsType.NONE, null, null);
-        setTransientFor(parent);
-        getMessageArea().setMarginLeft(0);
-        getMessageArea().setMarginRight(0);
-        string[3] msg = getUnsafePasteMessage();
-        setMarkup("<span weight='bold' size='larger'>" ~ msg[0] ~ "</span>\n\n" ~ msg[1] ~ "\n" ~ msg[2] ~ "\n" );
-        setImage(new Image("dialog-warning", IconSize.DIALOG));
-
-        Label lblCmd = new Label(SimpleXML.markupEscapeText(cmd, cmd.length));
-        lblCmd.setUseMarkup(true);
-        lblCmd.setHalign(GtkAlign.START);
-        lblCmd.setEllipsize(PangoEllipsizeMode.END);
-
-        if (count(cmd,"\n") > 6) {
-            ScrolledWindow sw = new ScrolledWindow();
-            sw.setShadowType(ShadowType.ETCHED_IN);
-            sw.setPolicy(PolicyType.AUTOMATIC, PolicyType.AUTOMATIC);
-            sw.setHexpand(true);
-            sw.setVexpand(true);
-            sw.setSizeRequest(400, 140);
-            sw.add(lblCmd);
-            getMessageArea().add(sw);
-        } else {
-            getMessageArea().add(lblCmd);
-        }
-
-        Button btnCancel = new Button(_("Don't Paste"));
-        Button btnIgnore = new Button(_("Paste Anyway"));
-        btnIgnore.getStyleContext().addClass("destructive-action");
-        addActionWidget(btnCancel, 1);
-        addActionWidget(btnIgnore, 0);
-        showAll();
-        btnIgnore.grabFocus();
-    }
-}
+/* UnsafePasteDialog moved to gx.tilix.terminal.clipboard */
 
 
 /* DnD types, trigger types, and serialization constants moved to gx.tilix.terminal.types */

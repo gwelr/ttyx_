@@ -121,3 +121,81 @@ public:
         return _handlers.byKey();
     }
 }
+
+// ---------------------------------------------------------------------------
+// Unit tests for PreferenceRegistry
+// ---------------------------------------------------------------------------
+
+/// Test: apply returns false for unregistered key.
+unittest {
+    PreferenceRegistry reg;
+    assert(!reg.apply("nonexistent.key"));
+}
+
+/// Test: register and apply a single key.
+unittest {
+    PreferenceRegistry reg;
+    int counter = 0;
+    reg.register(["test.key"], { counter++; });
+    assert(reg.apply("test.key"));
+    assert(counter == 1);
+}
+
+/// Test: apply does not trigger handler for wrong key.
+unittest {
+    PreferenceRegistry reg;
+    int counter = 0;
+    reg.register(["test.key"], { counter++; });
+    reg.apply("other.key");
+    assert(counter == 0);
+}
+
+/// Test: multiple keys can map to the same handler.
+unittest {
+    PreferenceRegistry reg;
+    int counter = 0;
+    reg.register(["key.a", "key.b", "key.c"], { counter++; });
+    reg.apply("key.a");
+    reg.apply("key.b");
+    reg.apply("key.c");
+    assert(counter == 3);
+}
+
+/// Test: last registration wins for the same key.
+unittest {
+    PreferenceRegistry reg;
+    string result;
+    reg.register(["test.key"], { result = "first"; });
+    reg.register(["test.key"], { result = "second"; });
+    reg.apply("test.key");
+    assert(result == "second");
+}
+
+/// Test: applyAll calls all registered handlers exactly once.
+unittest {
+    PreferenceRegistry reg;
+    int counterA = 0;
+    int counterB = 0;
+    reg.register(["key.a"], { counterA++; });
+    reg.register(["key.b"], { counterB++; });
+    reg.applyAll();
+    assert(counterA == 1);
+    assert(counterB == 1);
+}
+
+/// Test: applyAll with shared handler counts each key separately.
+unittest {
+    PreferenceRegistry reg;
+    int counter = 0;
+    reg.register(["key.a", "key.b"], { counter++; });
+    reg.applyAll();
+    assert(counter == 2, "shared handler should fire once per registered key");
+}
+
+/// Test: apply returns true for registered key.
+unittest {
+    PreferenceRegistry reg;
+    reg.register(["test.key"], {});
+    assert(reg.apply("test.key") == true);
+    assert(reg.apply("missing") == false);
+}

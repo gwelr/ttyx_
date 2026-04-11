@@ -193,3 +193,139 @@ public:
         return _localHostname;
     }
 }
+
+// ---------------------------------------------------------------------------
+// Unit tests for TerminalState
+// ---------------------------------------------------------------------------
+
+/// Test: TerminalState initializes empty.
+unittest {
+    TerminalState ts;
+    assert(!ts.hasState());
+    assert(ts.hostname.length == 0);
+    assert(ts.directory.length == 0);
+    assert(ts.username.length == 0);
+}
+
+/// Test: TerminalState.hasState returns true when any field is set.
+unittest {
+    TerminalState ts;
+    ts.hostname = "server1";
+    assert(ts.hasState());
+
+    TerminalState ts2;
+    ts2.directory = "/home/user";
+    assert(ts2.hasState());
+
+    TerminalState ts3;
+    ts3.username = "root";
+    assert(ts3.hasState());
+}
+
+/// Test: TerminalState.clear resets all fields.
+unittest {
+    TerminalState ts;
+    ts.hostname = "server1";
+    ts.directory = "/tmp";
+    ts.username = "root";
+    ts.clear();
+    assert(!ts.hasState());
+    assert(ts.hostname.length == 0);
+    assert(ts.directory.length == 0);
+    assert(ts.username.length == 0);
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests for GlobalTerminalState
+// ---------------------------------------------------------------------------
+
+/// Test: GlobalTerminalState starts uninitialized.
+unittest {
+    auto gst = new GlobalTerminalState();
+    assert(!gst.initialized);
+    assert(!gst.hasState(TerminalStateType.LOCAL));
+    assert(!gst.hasState(TerminalStateType.REMOTE));
+}
+
+/// Test: updating directory initializes the state.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.updateState(GlobalTerminalState.StateVariable.DIRECTORY, "/home/user");
+    assert(gst.initialized);
+    assert(gst.currentDirectory == "/home/user");
+}
+
+/// Test: local hostname stays local, not remote.
+unittest {
+    auto gst = new GlobalTerminalState();
+    string localhost = gst.localHostname;
+    // Updating with the local hostname should set local state, not remote
+    gst.updateState(localhost, "/home/user");
+    assert(gst.hasState(TerminalStateType.LOCAL));
+    assert(!gst.hasState(TerminalStateType.REMOTE));
+    assert(gst.currentHostname == localhost);
+    assert(gst.currentDirectory == "/home/user");
+}
+
+/// Test: foreign hostname sets remote state.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.updateState("remote-server.example.com", "/var/log");
+    assert(gst.hasState(TerminalStateType.REMOTE));
+    assert(gst.currentHostname == "remote-server.example.com");
+    assert(gst.currentDirectory == "/var/log");
+}
+
+/// Test: switching back to local hostname clears remote state.
+unittest {
+    auto gst = new GlobalTerminalState();
+    string localhost = gst.localHostname;
+    // First go remote
+    gst.updateState("remote-server", "/var/log");
+    assert(gst.hasState(TerminalStateType.REMOTE));
+    // Then back to local
+    gst.updateState(localhost, "/home/user");
+    assert(!gst.hasState(TerminalStateType.REMOTE));
+    assert(gst.currentDirectory == "/home/user");
+}
+
+/// Test: clear resets both local and remote state.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.updateState("remote-server", "/var/log");
+    gst.clear();
+    assert(!gst.hasState(TerminalStateType.LOCAL));
+    assert(!gst.hasState(TerminalStateType.REMOTE));
+}
+
+/// Test: currentHostname returns remote when remote is set.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.updateState("remote-server", "/tmp");
+    assert(gst.currentHostname == "remote-server");
+    // currentLocalDirectory still returns local
+    assert(gst.currentLocalDirectory.length == 0);
+}
+
+/// Test: updateState with StateVariable enum.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.updateState(GlobalTerminalState.StateVariable.USERNAME, "admin");
+    assert(gst.currentUsername == "admin");
+}
+
+/// Test: remote username is returned when remote state exists.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.updateState(GlobalTerminalState.StateVariable.HOSTNAME, "remote-server");
+    gst.updateState(GlobalTerminalState.StateVariable.USERNAME, "deploy");
+    assert(gst.currentUsername == "deploy");
+    assert(gst.currentHostname == "remote-server");
+}
+
+/// Test: initialCWD property.
+unittest {
+    auto gst = new GlobalTerminalState();
+    gst.initialCWD = "/home/user/projects";
+    assert(gst.initialCWD == "/home/user/projects");
+}

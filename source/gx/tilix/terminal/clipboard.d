@@ -38,6 +38,17 @@ import gx.tilix.terminal.types;
 package:
 
 /**
+ * Tests if the paste content is potentially unsafe.
+ *
+ * Currently checks for sudo combined with a newline, which would
+ * execute a privileged command immediately on paste.
+ */
+bool isPasteUnsafe(string text) {
+    import std.string : indexOf;
+    return (text.indexOf("sudo") > -1) && (text.indexOf("\n") > -1);
+}
+
+/**
  * Handles clipboard operations (copy, paste) for a terminal.
  *
  * Responsible for:
@@ -76,16 +87,6 @@ public:
         _sync = sync;
         _scrollToBottom = scrollToBottom;
         _focusTerminal = focusTerminal;
-    }
-
-    /**
-     * Tests if the paste content is potentially unsafe.
-     *
-     * Currently checks for sudo combined with a newline, which would
-     * execute a privileged command immediately on paste.
-     */
-    bool isPasteUnsafe(string text) {
-        return (text.indexOf("sudo") > -1) && (text.indexOf("\n") > -1);
     }
 
     /**
@@ -249,4 +250,49 @@ public:
         showAll();
         btnIgnore.grabFocus();
     }
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests for isPasteUnsafe
+// ---------------------------------------------------------------------------
+
+/// Test: sudo with newline is unsafe.
+unittest {
+    assert(isPasteUnsafe("sudo rm -rf /\n"));
+}
+
+/// Test: sudo without newline is safe (won't auto-execute).
+unittest {
+    assert(!isPasteUnsafe("sudo rm -rf /"));
+}
+
+/// Test: newline without sudo is safe.
+unittest {
+    assert(!isPasteUnsafe("echo hello\necho world\n"));
+}
+
+/// Test: empty string is safe.
+unittest {
+    assert(!isPasteUnsafe(""));
+}
+
+/// Test: sudo buried in multiline command is unsafe.
+unittest {
+    assert(isPasteUnsafe("echo hello\nsudo apt install malware\necho done"));
+}
+
+/// Test: "sudo" as substring of another word with newline is flagged (known limitation).
+unittest {
+    // "visudo" contains "sudo" — current implementation flags it
+    assert(isPasteUnsafe("visudo /etc/sudoers\n"));
+}
+
+/// Test: only newline, no sudo.
+unittest {
+    assert(!isPasteUnsafe("\n"));
+}
+
+/// Test: sudo at start with immediate newline.
+unittest {
+    assert(isPasteUnsafe("sudo\n"));
 }

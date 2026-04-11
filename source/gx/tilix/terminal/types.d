@@ -169,3 +169,61 @@ enum NODE_BADGE = "badge";
 enum NODE_TITLE = "title";
 enum NODE_READONLY = "readOnly";
 enum NODE_SYNCHRONIZED_INPUT = "synchronizedInput";
+
+// ---------------------------------------------------------------------------
+// Unit tests for TerminalTrigger
+// ---------------------------------------------------------------------------
+
+/// Test: TerminalTrigger maps action name to TriggerAction enum.
+unittest {
+    auto t = new TerminalTrigger("test", SETTINGS_PROFILE_TRIGGER_UPDATE_STATE_VALUE, "params");
+    assert(t.action == TriggerAction.UPDATE_STATE);
+    assert(t.pattern == "test");
+    assert(t.parameters == "params");
+}
+
+/// Test: TerminalTrigger compiles regex in multiline mode.
+unittest {
+    auto t = new TerminalTrigger("^hello", SETTINGS_PROFILE_TRIGGER_SEND_TEXT_VALUE, "");
+    assert(t.action == TriggerAction.SEND_TEXT);
+    // Regex should match at start of any line (multiline mode)
+    auto m = matchFirst("world\nhello there", t.compiledRegex);
+    assert(!m.empty, "should match 'hello' at start of second line");
+}
+
+/// Test: TerminalTrigger with execute command action.
+unittest {
+    auto t = new TerminalTrigger("error: (.*)", SETTINGS_PROFILE_TRIGGER_EXECUTE_COMMAND_VALUE, "/usr/bin/notify");
+    assert(t.action == TriggerAction.EXECUTE_COMMAND);
+    auto m = matchFirst("error: disk full", t.compiledRegex);
+    assert(!m.empty);
+    assert(m[1] == "disk full");
+}
+
+/// Test: TerminalTrigger with unknown action name defaults (no crash).
+unittest {
+    auto t = new TerminalTrigger("test", "nonexistent-action", "");
+    // Should not crash, action stays at default init value
+}
+
+/// Test: DragInfo initializes correctly.
+unittest {
+    auto di = DragInfo(true, DragQuadrant.RIGHT);
+    assert(di.isDragActive);
+    assert(di.dq == DragQuadrant.RIGHT);
+}
+
+/// Test: DragInfo default state.
+unittest {
+    DragInfo di;
+    assert(!di.isDragActive);
+}
+
+/// Test: SyncInputEvent fields.
+unittest {
+    auto se = SyncInputEvent("uuid-123", SyncInputEventType.INSERT_TEXT, null, "hello");
+    assert(se.senderUUID == "uuid-123");
+    assert(se.eventType == SyncInputEventType.INSERT_TEXT);
+    assert(se.text == "hello");
+    assert(se.event is null);
+}

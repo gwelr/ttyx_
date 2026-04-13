@@ -153,6 +153,7 @@ immutable string[] SETTINGS_QUAKE_WINDOW_POSITION_VALUES = ["top", "bottom"];
 enum SETTINGS_PROCESS_MONITOR = "process-monitor";
 enum SETTINGS_ROOT_INDICATOR = "root-indicator";
 enum SETTINGS_SSH_INDICATOR = "ssh-indicator";
+enum SETTINGS_CORE_DUMP_PROTECTION = "core-dump-protection";
 
 //Proxy Environment Variables
 enum SETTINGS_SET_PROXY_ENV_KEY = "set-proxy-env";
@@ -596,4 +597,24 @@ unittest {
     // Unlimited (-1) is never allowed — clamped to minimum
     assert(clampScrollbackLines(-1) == SETTINGS_PROFILE_SCROLLBACK_LINES_MIN);
     assert(clampScrollbackLines(-1) > 0, "scrollback must always be positive to prevent VTE disk writes");
+}
+
+// -- Core dump protection --
+
+unittest {
+    // prctl PR_SET_DUMPABLE round-trip: set non-dumpable, verify, restore
+    import core.sys.linux.sys.prctl : prctl, PR_SET_DUMPABLE, PR_GET_DUMPABLE;
+
+    int original = prctl(PR_GET_DUMPABLE, 0, 0, 0, 0);
+
+    // Disable dumps
+    assert(prctl(PR_SET_DUMPABLE, 0, 0, 0, 0) == 0, "prctl SET_DUMPABLE=0 failed");
+    assert(prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 0, "process should be non-dumpable");
+
+    // Re-enable dumps
+    assert(prctl(PR_SET_DUMPABLE, 1, 0, 0, 0) == 0, "prctl SET_DUMPABLE=1 failed");
+    assert(prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 1, "process should be dumpable again");
+
+    // Restore original state
+    prctl(PR_SET_DUMPABLE, original, 0, 0, 0);
 }

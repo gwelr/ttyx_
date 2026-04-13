@@ -2149,9 +2149,8 @@ private:
             vte.setScrollOnKeystroke(gsProfile.getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY));
         });
 
-        prefRegistry.register([SETTINGS_PROFILE_UNLIMITED_SCROLL_KEY, SETTINGS_PROFILE_SCROLLBACK_LINES_KEY], {
-            auto scrollLines = gsProfile.getBoolean(SETTINGS_PROFILE_UNLIMITED_SCROLL_KEY) ? -1 : gsProfile.getInt(SETTINGS_PROFILE_SCROLLBACK_LINES_KEY);
-            vte.setScrollbackLines(scrollLines);
+        prefRegistry.register([SETTINGS_PROFILE_SCROLLBACK_LINES_KEY], {
+            vte.setScrollbackLines(clampScrollbackLines(gsProfile.getInt(SETTINGS_PROFILE_SCROLLBACK_LINES_KEY)));
         });
 
         prefRegistry.register([SETTINGS_PROFILE_BACKSPACE_BINDING_KEY], {

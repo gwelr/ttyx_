@@ -734,12 +734,7 @@
     <key name="scrollback-lines" type="i">
       <default>8192</default>
       <summary>Number of lines to keep in scrollback</summary>
-      <description>Number of scrollback lines to keep around. You can scroll back in the terminal by this number of lines; lines that don't fit in the scrollback are discarded. If scrollback_unlimited is true, this value is ignored.</description>
-    </key>
-    <key name="scrollback-unlimited" type="b">
-      <default>false</default>
-      <summary>Whether an unlimited number of lines should be kept in scrollback</summary>
-      <description>If true, scrollback lines will never be discarded. The scrollback history is stored on disk temporarily, so this may cause the system to run out of disk space if there is a lot of output to the terminal.</description>
+      <description>Number of scrollback lines to keep around. You can scroll back in the terminal by this number of lines; lines that don't fit in the scrollback are discarded. Maximum 999999. Scrollback is kept in memory only and never written to disk.</description>
     </key>
     <key name="scroll-on-keystroke" type="b">
       <default>true</default>

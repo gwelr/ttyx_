@@ -1177,11 +1177,11 @@
     </key>
     <key name="terminal-reset" type="s">
       <default>'disabled'</default>
-      <summary>Keyboard shortcut to reset the terminal states</summary>
+      <summary>Keyboard shortcut to refresh the terminal</summary>
     </key>
     <key name="terminal-reset-and-clear" type="s">
-      <default>'disabled'</default>
-      <summary>Keyboard shortcut to reset the terminal states and clear the output buffer</summary>
+      <default>'&lt;Ctrl&gt;&lt;Shift&gt;l'</default>
+      <summary>Keyboard shortcut to secure clear (reset terminal and wipe scrollback)</summary>
     </key>
     <key name="terminal-copy" type="s">
       <default>'&lt;Ctrl&gt;&lt;Shift&gt;c'</default>

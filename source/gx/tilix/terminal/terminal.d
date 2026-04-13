@@ -862,8 +862,8 @@ private:
 
         menuSection = new GMenu();
         menuSection.append(_("Save Output…"), getActionDetailedName(ACTION_PREFIX, ACTION_SAVE));
-        menuSection.append(_("Reset"), getActionDetailedName(ACTION_PREFIX, ACTION_RESET));
-        menuSection.append(_("Reset and Clear"), getActionDetailedName(ACTION_PREFIX, ACTION_RESET_AND_CLEAR));
+        menuSection.append(_("Refresh"), getActionDetailedName(ACTION_PREFIX, ACTION_RESET));
+        menuSection.append(_("Secure Clear"), getActionDetailedName(ACTION_PREFIX, ACTION_RESET_AND_CLEAR));
         submenu.appendSection(null, menuSection);
 
         menuSection = new GMenu();
@@ -1786,6 +1786,10 @@ private:
 
             mmContext.appendItem(clipItem);
         }
+        GMenu clearSection = new GMenu();
+        clearSection.append(_("Secure Clear"), getActionDetailedName(ACTION_PREFIX, ACTION_RESET_AND_CLEAR));
+        mmContext.appendSection(null, clearSection);
+
         //Check if titlebar is hidden and add extra items
         if (!bTitle.isVisible()) {
             GMenu windowSection = new GMenu();

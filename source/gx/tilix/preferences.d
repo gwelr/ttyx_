@@ -84,6 +84,7 @@ enum SETTINGS_SESSION_NAME_KEY = "session-name";
 enum SETTINGS_ENABLE_WIDE_HANDLE_KEY = "enable-wide-handle";
 enum SETTINGS_NOTIFY_ON_PROCESS_COMPLETE_KEY = "notify-on-process-complete";
 enum SETTINGS_UNSAFE_PASTE_ALERT_KEY = "unsafe-paste-alert";
+enum SETTINGS_WARN_MULTILINE_PASTE_KEY = "warn-multiline-paste";
 enum SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY = "paste-strip-first-char";
 enum SETTINGS_STRIP_TRAILING_WHITESPACE = "paste-strip-trailing-whitespace";
 enum SETTINGS_COPY_STRIP_TRAILING_WHITESPACE = "copy-strip-trailing-whitespace";

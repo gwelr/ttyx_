@@ -283,6 +283,11 @@
       <summary>Alert the user about unsafe paste</summary>
       <description>Warn the user when pasting a command into the terminal that might be considered unsafe.</description>
     </key>
+    <key name="warn-multiline-paste" type="b">
+      <default>true</default>
+      <summary>Show review dialog for multi-line paste</summary>
+      <description>If true, pasting multi-line content will show the advanced paste dialog for review before pasting. This prevents accidental execution of commands from copied snippets.</description>
+    </key>
     <key name="paste-strip-first-char" type="b">
       <default>false</default>
       <summary>Strip the first character from a paste when comment or variable declaration</summary>

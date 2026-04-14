@@ -90,6 +90,20 @@ bool isPasteUnsafe(string text) {
 }
 
 /**
+ * Strip bracketed paste escape sequences from clipboard content.
+ *
+ * Removes ESC[200~ (start) and ESC[201~ (end) sequences that could be
+ * used to break out of VTE's bracketed paste mode and inject commands.
+ * This is an unconditional security sanitization — there is no legitimate
+ * reason to paste these terminal control codes.
+ */
+string stripBracketedPasteEscapes(string text) {
+    import std.regex : ctRegex, replaceAll;
+    enum re = ctRegex!`\x1b\[(200|201)~`;
+    return text.replaceAll(re, "");
+}
+
+/**
  * Handles clipboard operations (copy, paste) for a terminal.
  *
  * Responsible for:
@@ -108,9 +122,6 @@ private:
     ISyncInputEmitter _sync;
     void delegate() _scrollToBottom;
     void delegate() _focusTerminal;
-
-    /// Whether the user has dismissed the unsafe paste warning for this session.
-    bool _unsafePasteIgnored;
 
 public:
     /**
@@ -137,6 +148,7 @@ public:
     void advancedPaste(GdkAtom source) {
         string pasteText = Clipboard.get(source).waitForText();
         if (pasteText.length == 0) return;
+        pasteText = stripBracketedPasteEscapes(pasteText);
         if (pasteText.indexOf("\n") < 0) return paste(source);
 
         AdvancedPasteDialog dialog = new AdvancedPasteDialog(
@@ -213,6 +225,8 @@ public:
      */
     void paste(GdkAtom source) {
         string pasteText = Clipboard.get(source).waitForText();
+        if (pasteText.length == 0) return;
+        pasteText = stripBracketedPasteEscapes(pasteText);
 
         bool stripTrailingWhitespace = _ctx.contextGsSettings().getBoolean(SETTINGS_STRIP_TRAILING_WHITESPACE);
         if (stripTrailingWhitespace) {
@@ -221,16 +235,43 @@ public:
 
         if (pasteText.length == 0) return;
 
+        // Multi-line paste: show review dialog (takes precedence over sudo warning
+        // since the review dialog already flags unsafe content and lets the user edit)
+        if (pasteText.indexOf("\n") >= 0 && _ctx.contextGsSettings().getBoolean(SETTINGS_WARN_MULTILINE_PASTE_KEY)) {
+            AdvancedPasteDialog dialog = new AdvancedPasteDialog(
+                cast(Window) _ctx.toplevelWidget(), pasteText, isPasteUnsafe(pasteText));
+            scope(exit) {
+                dialog.hide();
+                dialog.destroy();
+            }
+            dialog.showAll();
+            if (dialog.run() == ResponseType.APPLY) {
+                pasteText = dialog.text;
+                vtePasteText(_ctx.contextVte(), pasteText);
+                if (_ctx.contextGsProfile().getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
+                    _scrollToBottom();
+                }
+                static if (!USE_COMMIT_SYNCHRONIZATION) {
+                    if (_sync.isSynchronizedInput()) {
+                        SyncInputEvent se = SyncInputEvent(
+                            _ctx.terminalUUID(), SyncInputEventType.INSERT_TEXT, null, pasteText);
+                        _sync.emitSyncInput(se);
+                    }
+                }
+            }
+            _focusTerminal();
+            return;
+        }
+
+        // Single-line unsafe paste warning (multi-line is handled above)
         if (isPasteUnsafe(pasteText)) {
-            if (!_unsafePasteIgnored && _ctx.contextGsSettings().getBoolean(SETTINGS_UNSAFE_PASTE_ALERT_KEY)) {
+            if (_ctx.contextGsSettings().getBoolean(SETTINGS_UNSAFE_PASTE_ALERT_KEY)) {
                 UnsafePasteDialog dialog = new UnsafePasteDialog(
                     cast(Window) _ctx.toplevelWidget(), chomp(pasteText));
                 scope(exit) {
                     dialog.destroy();
                 }
-                if (dialog.run() == 0)
-                    _unsafePasteIgnored = true;
-                else
+                if (dialog.run() != 0)
                     return;
             }
         }
@@ -355,6 +396,59 @@ unittest {
 /// Test: sudo at start with immediate newline.
 unittest {
     assert(isPasteUnsafe("sudo\n"));
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests for stripBracketedPasteEscapes
+// ---------------------------------------------------------------------------
+
+/// Test: strips ESC[200~ (start bracketed paste).
+unittest {
+    assert(stripBracketedPasteEscapes("\x1b[200~hello") == "hello");
+}
+
+/// Test: strips ESC[201~ (end bracketed paste).
+unittest {
+    assert(stripBracketedPasteEscapes("hello\x1b[201~") == "hello");
+}
+
+/// Test: strips both start and end sequences.
+unittest {
+    assert(stripBracketedPasteEscapes("\x1b[200~hello\x1b[201~") == "hello");
+}
+
+/// Test: strips injected end-bracketed-paste attack payload.
+unittest {
+    string attack = "echo harmless\x1b[201~\nrm -rf ~/Documents\n";
+    string sanitized = stripBracketedPasteEscapes(attack);
+    assert(sanitized.indexOf("\x1b[201~") < 0, "attack sequence must be removed");
+    assert(sanitized == "echo harmless\nrm -rf ~/Documents\n");
+}
+
+/// Test: preserves normal text without escape sequences.
+unittest {
+    assert(stripBracketedPasteEscapes("normal text\nwith newlines") == "normal text\nwith newlines");
+}
+
+/// Test: handles empty string.
+unittest {
+    assert(stripBracketedPasteEscapes("") == "");
+}
+
+/// Test: handles text that is only escape sequences.
+unittest {
+    assert(stripBracketedPasteEscapes("\x1b[200~\x1b[201~") == "");
+}
+
+/// Test: handles multiple occurrences.
+unittest {
+    assert(stripBracketedPasteEscapes("\x1b[200~a\x1b[201~b\x1b[200~c\x1b[201~") == "abc");
+}
+
+/// Test: preserves other escape sequences (only strips bracketed paste).
+unittest {
+    // ESC[0m (reset colors) should NOT be stripped
+    assert(stripBracketedPasteEscapes("\x1b[0mhello") == "\x1b[0mhello");
 }
 
 // ---------------------------------------------------------------------------

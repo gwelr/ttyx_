@@ -1614,6 +1614,11 @@ private:
         bh.bind(SETTINGS_UNSAFE_PASTE_ALERT_KEY, cbUnsafe, "active", GSettingsBindFlags.DEFAULT);
         add(cbUnsafe);
 
+        //Warn on multi-line paste
+        CheckButton cbWarnMultiline = new CheckButton(_("Show review dialog for multi-line paste"));
+        bh.bind(SETTINGS_WARN_MULTILINE_PASTE_KEY, cbWarnMultiline, "active", GSettingsBindFlags.DEFAULT);
+        add(cbWarnMultiline);
+
         //Strip Paste
         CheckButton cbStrip = new CheckButton(_("Strip first character of paste if comment or variable declaration"));
         bh.bind(SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY, cbStrip, "active", GSettingsBindFlags.DEFAULT);

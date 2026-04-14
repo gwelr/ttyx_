@@ -264,7 +264,7 @@ private:
 
     //Whether to ignore unsafe paste, basically when
     //option is turned on but user opts to ignore it for this terminal
-    /* unsafePasteIgnored moved to ClipboardHandler */
+    /* Paste safety checks handled by ClipboardHandler */
 
     GlobalTerminalState gst;
 

@@ -592,7 +592,8 @@ private:
         //Link Actions, no shortcuts, context menu only
         registerAction(group, ACTION_PREFIX, ACTION_COPY_LINK, null, delegate(GVariant, SimpleAction) {
             if (match.match) {
-                Clipboard.get(null).setText(match.match, to!int(match.match.length));
+                Clipboard.get(GDK_SELECTION_CLIPBOARD).setText(match.match, to!int(match.match.length));
+                clipboardHandler.notifyExternalCopy();
             }
         });
         registerAction(group, ACTION_PREFIX, ACTION_OPEN_LINK, null, delegate(GVariant, SimpleAction) {

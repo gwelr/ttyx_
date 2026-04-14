@@ -25,7 +25,10 @@ import glib.SimpleXML;
 
 import gtkc.gtktypes : GtkAlign, DialogFlags, MessageType, ButtonsType, ResponseType, IconSize, ShadowType, PolicyType;
 
+import gtkc.glib : g_source_remove;
+
 import gx.gtk.clipboard : GDK_SELECTION_CLIPBOARD;
+import gx.gtk.threads : threadsAddTimeoutDelegate;
 import gx.i18n.l10n;
 
 import gx.tilix.constants : USE_COMMIT_SYNCHRONIZATION;
@@ -34,6 +37,44 @@ import gx.tilix.terminal.advpaste;
 import gx.tilix.terminal.context;
 import gx.tilix.terminal.exvte : vtePasteText;
 import gx.tilix.terminal.types;
+
+/// Module-level auto-clear state. Shared across all ClipboardHandler instances
+/// because the GTK clipboard is a global resource.
+uint _autoClearTimeoutID = 0;
+string _lastCopiedText;
+
+/**
+ * Schedule auto-clear of the clipboard after the given timeout.
+ * Cancels any existing pending auto-clear first.
+ * Only clears if clipboard content still matches what was copied
+ * (i.e., another application hasn't overwritten it).
+ */
+void scheduleAutoClear(string copiedText, uint timeoutSeconds) {
+    cancelAutoClear();
+    _lastCopiedText = copiedText;
+    _autoClearTimeoutID = threadsAddTimeoutDelegate(
+        timeoutSeconds * 1000,
+        delegate() {
+            Clipboard cb = Clipboard.get(GDK_SELECTION_CLIPBOARD);
+            string current = cb.waitForText();
+            if (current !is null && current == _lastCopiedText) {
+                cb.clear();
+            }
+            _autoClearTimeoutID = 0;
+            _lastCopiedText = null;
+            return false; // one-shot
+        }
+    );
+}
+
+/// Cancel any pending auto-clear timeout.
+void cancelAutoClear() {
+    if (_autoClearTimeoutID > 0) {
+        g_source_remove(_autoClearTimeoutID);
+        _autoClearTimeoutID = 0;
+    }
+    _lastCopiedText = null;
+}
 
 package:
 
@@ -140,6 +181,25 @@ public:
                 if (stripped.length > 0) {
                     cb.setText(stripped, cast(int) stripped.length);
                 }
+            }
+        }
+        maybeScheduleAutoClear();
+    }
+
+    /**
+     * Notify the auto-clear system that text was copied to the clipboard
+     * outside of copyToClipboard() (e.g., hyperlink copy).
+     */
+    void notifyExternalCopy() {
+        maybeScheduleAutoClear();
+    }
+
+    private void maybeScheduleAutoClear() {
+        if (_ctx.contextGsSettings().getBoolean(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY)) {
+            Clipboard cb = Clipboard.get(GDK_SELECTION_CLIPBOARD);
+            string text = cb.waitForText();
+            if (text !is null && text.length > 0) {
+                scheduleAutoClear(text, _ctx.contextGsSettings().getUint(SETTINGS_CLIPBOARD_AUTO_CLEAR_TIMEOUT_KEY));
             }
         }
     }
@@ -295,4 +355,23 @@ unittest {
 /// Test: sudo at start with immediate newline.
 unittest {
     assert(isPasteUnsafe("sudo\n"));
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests for clipboard auto-clear
+// ---------------------------------------------------------------------------
+
+/// Test: cancelAutoClear is safe to call with no active timeout.
+unittest {
+    cancelAutoClear();
+    assert(_autoClearTimeoutID == 0);
+    assert(_lastCopiedText is null);
+}
+
+/// Test: cancelAutoClear is idempotent (safe to call multiple times).
+unittest {
+    cancelAutoClear();
+    cancelAutoClear();
+    cancelAutoClear();
+    assert(_autoClearTimeoutID == 0);
 }

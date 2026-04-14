@@ -1634,6 +1634,21 @@ private:
         bh.bind(SETTINGS_COPY_ON_SELECT_KEY, cbCopyOnSelect, "active", GSettingsBindFlags.DEFAULT);
         add(cbCopyOnSelect);
 
+        //Clipboard auto-clear
+        CheckButton cbAutoClear = new CheckButton(_("Automatically clear clipboard after timeout"));
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, cbAutoClear, "active", GSettingsBindFlags.DEFAULT);
+        add(cbAutoClear);
+
+        Box bAutoClearTimeout = new Box(Orientation.HORIZONTAL, 12);
+        Label lblAutoClearTimeout = new Label(_("Clear clipboard after (seconds)"));
+        SpinButton sbAutoClearTimeout = new SpinButton(5, 300, 5);
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_TIMEOUT_KEY, sbAutoClearTimeout, "value", GSettingsBindFlags.DEFAULT);
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, sbAutoClearTimeout, "sensitive", GSettingsBindFlags.DEFAULT);
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, lblAutoClearTimeout, "sensitive", GSettingsBindFlags.DEFAULT);
+        bAutoClearTimeout.add(lblAutoClearTimeout);
+        bAutoClearTimeout.add(sbAutoClearTimeout);
+        add(bAutoClearTimeout);
+
         //Root Indicator
         CheckButton cbRootIndicator = new CheckButton(_("Show visual indicator when running as root"));
         bh.bind(SETTINGS_ROOT_INDICATOR, cbRootIndicator, "active", GSettingsBindFlags.DEFAULT);

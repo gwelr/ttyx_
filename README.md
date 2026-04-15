@@ -26,7 +26,31 @@ Same great terminal. Fresh fixes, new features, and someone actually reading the
 - Preferences dialog segfault fixes
 - 8 new color schemes: Catppuccin (Latte, Mocha), Dracula, Gruvbox (Dark, Light), Nord, Solarized (Dark, Light)
 - Release build optimizations (proper `-O3` and `-release` flags)
-- Comprehensive unit test suite
+- Comprehensive unit test suite (119 tests)
+- **Security hardening** (see below)
+
+## Security features
+
+ttyx_ is designed to be a security-conscious terminal. All security options are in **Preferences > Advanced > Security**.
+
+### Paste protection
+Pasting content from the clipboard can be dangerous — a malicious website could place harmful commands in your clipboard. ttyx_ protects you with:
+
+- **Bracketed paste escape stripping** — silently removes `ESC[200~`/`ESC[201~` sequences that could break out of the shell's paste mode and inject commands. Always active, no option to disable.
+- **Multi-line paste review** — shows a review dialog before pasting multi-line content, letting you inspect and edit before it reaches the shell. *(Default: on)*
+- **Dangerous command detection** — flags pastes containing `sudo`, `su`, `rm -rf`, `curl | bash`, `dd if=`, `mkfs`, `chmod 777`, fork bombs, and other dangerous patterns.
+
+### Clipboard protection
+- **Auto-clear** — automatically clears the clipboard after a configurable timeout (5–300 seconds) following a copy from the terminal. Prevents sensitive data like passwords and tokens from lingering. Only clears if the clipboard still holds the content you copied (won't wipe something another app put there). *(Default: off, 30 seconds)*
+
+### Visual indicators
+- **Root indicator** — red tint and "as root" label when any process in the terminal is running with elevated privileges. *(Default: on)*
+- **SSH indicator** — blue tint and "ssh" label when connected via ssh, scp, sftp, mosh, or sshfs. *(Default: on)*
+
+### Memory protection
+- **Core dump protection** — marks the process as non-dumpable via `prctl(PR_SET_DUMPABLE, 0)`, preventing `/proc/pid/mem` reads and core dump generation. Disable in preferences if you need to attach GDB. *(Default: on)*
+- **In-memory-only scrollback** — scrollback is capped at 256–999,999 lines and kept entirely in memory. VTE never writes history to disk.
+- **Secure Clear** (`Ctrl+Shift+L`) — wipe the scrollback buffer when sensitive data has been displayed. Available in the hamburger menu and right-click context menu.
 
 ## Features
 

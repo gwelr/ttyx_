@@ -1,3 +1,32 @@
+Version 1.1.0
+~~~~~~~~~~~~~~
+Released: 2026-04-15
+
+Features:
+ * Security: enforce in-memory-only scrollback, capped at 256-999999 lines
+ * Security: core dump protection via prctl PR_SET_DUMPABLE
+ * Security: Secure Clear action (Ctrl+Shift+L) to wipe scrollback buffer
+ * Security: SSH session detection indicator for ssh, scp, sftp, mosh, sshfs
+ * Security: clipboard auto-clear after configurable timeout
+ * Security: strip bracketed paste escape sequences to prevent injection
+ * Security: multi-line paste review dialog before execution
+ * Security: expanded dangerous command detection (sudo, rm -rf, curl|bash, etc.)
+ * Security: per-paste unsafe warning (no longer permanently dismissed)
+ * Security: all options consolidated in Advanced preferences with descriptions
+ * Flatpak packaging with GNOME 48 SDK and bundled LDC compiler
+ * ProcessMonitor optimization: idle CPU reduced from 1.4% to 0.1%
+
+Bugfixes:
+ * Fix GC crash when opening preferences on GLib 2.84+
+ * Fix SSH and root indicators not clearing when process exits
+ * Fix color scheme test when schemes not installed in XDG paths
+
+Miscellaneous:
+ * Major terminal.d decomposition into extracted components
+ * Replace applyPreference switch with PreferenceRegistry pattern
+ * 119 unit tests covering security, clipboard, rendering, and monitoring
+ * CI: add xvfb support for GTK integration tests
+
 Version 1.9.6
 ~~~~~~~~~~~~~~
 Released: 2023-11-08

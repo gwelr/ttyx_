@@ -1,6 +1,6 @@
 project(
     'ttyx', 'd',
-    version: '1.1.0',
+    version: '1.1.1',
     license: 'MPL-2.0',
     meson_version: '>= 0.56'
 )

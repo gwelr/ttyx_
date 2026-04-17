@@ -332,7 +332,7 @@ private string buildTestSchemeJson(
 private ColorScheme loadSchemeFromString(string json) {
     import std.file : write, remove, tempDir;
     import std.path : buildPath;
-    string tmpFile = buildPath(tempDir(), "tilix_test_scheme.json");
+    string tmpFile = buildPath(tempDir(), "ttyx_test_scheme.json");
     write(tmpFile, json);
     scope(exit) remove(tmpFile);
     return loadScheme(tmpFile);

@@ -99,6 +99,17 @@ meson test -C builddir --print-errorlogs
 dub build --build=release --compiler=ldc2
 ```
 
+## Migrating from Tilix
+
+ttyx_ automatically migrates your configuration on first run:
+
+- **Session files**: `~/.config/tilix/` is copied to `~/.config/ttyx/` (the original is kept as backup)
+- **Saved passwords**: existing passwords stored under the old Tilix schema are read automatically; new passwords are saved under the ttyx schema
+- **Environment variable**: `TILIX_ID` is still set for backwards compatibility alongside the new `TTYX_ID`
+- **GSettings**: ttyx_ uses its own schema (`io.github.gwelr.ttyx`). Tilix settings are not migrated — configure preferences in ttyx_ directly
+
+After verifying ttyx_ works correctly, you can remove `~/.config/tilix/` manually.
+
 ## Contributing
 
 This is a freetime project. I work on what interests me, when I have time.

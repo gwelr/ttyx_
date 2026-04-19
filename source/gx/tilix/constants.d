@@ -66,7 +66,7 @@ enum APPLICATION_ID = "io.github.gwelr.ttyx";
 
 // Application values used in About Dialog
 enum APPLICATION_NAME = "ttyx_";
-enum APPLICATION_VERSION = "1.1.1";
+enum APPLICATION_VERSION = "1.1.2";
 enum APPLICATION_AUTHOR = "gwelr";
 enum APPLICATION_COPYRIGHT = "Copyright \xc2\xa9 2026 " ~ APPLICATION_AUTHOR;
 enum APPLICATION_COMMENTS = N_("A tiling terminal emulator for Linux, forked from Tilix");

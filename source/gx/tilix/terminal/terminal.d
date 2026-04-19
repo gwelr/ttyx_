@@ -129,6 +129,7 @@ import gx.gtk.util;
 import gx.gtk.vte;
 import gx.i18n.l10n;
 import gx.util.array;
+import gx.util.redact : stripUrlUserinfo;
 
 import gx.tilix.application;
 import gx.tilix.bookmark.bmchooser;
@@ -1933,7 +1934,7 @@ private:
     }
 
     void openURI(TerminalURLMatch urlMatch) {
-        tracef("Match information URI: %s. Flavor: %d", urlMatch.match, urlMatch.flavor);
+        tracef("Match information URI: %s. Flavor: %d", stripUrlUserinfo(urlMatch.match), urlMatch.flavor);
 
         string uri = urlMatch.match;
         switch (urlMatch.flavor) {

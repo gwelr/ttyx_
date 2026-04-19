@@ -129,6 +129,7 @@ import gx.gtk.util;
 import gx.gtk.vte;
 import gx.i18n.l10n;
 import gx.util.array;
+import gx.util.geometry : Point, pointInTriangle;
 import gx.util.redact : stripUrlUserinfo;
 
 import gx.tilix.application;
@@ -2835,33 +2836,12 @@ private:
      * the drag snap too.
      */
     DragQuadrant getDragQuadrant(int x, int y, Widget widget) {
-
-        /**
-         * Cribbed from Stackoverflow (http://stackoverflow.com/questions/2049582/how-to-determine-a-point-in-a-2d-triangle)
-         * since implementing my own version of barycentric method will turn my brain to mush
-         */
-        bool pointInTriangle(GdkPoint p, GdkPoint p0, GdkPoint p1, GdkPoint p2) {
-            int s = p0.y * p2.x - p0.x * p2.y + (p2.y - p0.y) * p.x + (p0.x - p2.x) * p.y;
-            int t = p0.x * p1.y - p0.y * p1.x + (p0.y - p1.y) * p.x + (p1.x - p0.x) * p.y;
-
-            if ((s < 0) != (t < 0))
-                return false;
-
-            int a = -p1.y * p2.x + p0.y * (p2.x - p1.x) + p0.x * (p1.y - p2.y) + p1.x * p2.y;
-            if (a < 0.0) {
-                s = -s;
-                t = -t;
-                a = -a;
-            }
-            return s > 0 && t > 0 && (s + t) <= a;
-        }
-
-        GdkPoint cursor = GdkPoint(x, y);
-        GdkPoint topLeft = GdkPoint(0, 0);
-        GdkPoint topRight = GdkPoint(widget.getAllocatedWidth(), 0);
-        GdkPoint bottomRight = GdkPoint(widget.getAllocatedWidth(), widget.getAllocatedHeight());
-        GdkPoint bottomLeft = GdkPoint(0, widget.getAllocatedHeight());
-        GdkPoint center = GdkPoint(widget.getAllocatedWidth() / 2, widget.getAllocatedHeight() / 2);
+        Point cursor = Point(x, y);
+        Point topLeft = Point(0, 0);
+        Point topRight = Point(widget.getAllocatedWidth(), 0);
+        Point bottomRight = Point(widget.getAllocatedWidth(), widget.getAllocatedHeight());
+        Point bottomLeft = Point(0, widget.getAllocatedHeight());
+        Point center = Point(widget.getAllocatedWidth() / 2, widget.getAllocatedHeight() / 2);
 
         //LEFT
         if (pointInTriangle(cursor, topLeft, bottomLeft, center))

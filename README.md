@@ -76,12 +76,31 @@ ttyx_ is written in [D](https://dlang.org/) using GTK 3 and the GtkD bindings.
 
 ### With Meson (recommended)
 
+The Meson build resolves the GtkD bindings (`gtkd-3`, `vted-3`) via
+pkg-config, so they must be installed separately. On distros that still
+package them, apt covers everything. On Debian Testing/Sid they have
+been dropped from the archive and must be built from source.
+
 ```bash
-# Install dependencies (Debian/Ubuntu)
+# Install dependencies (Debian Stable / Ubuntu)
+sudo apt-get install libgtk-3-dev libvte-2.91-dev libatk1.0-dev \
+  libcairo2-dev libpango1.0-dev librsvg2-dev libglib2.0-dev \
+  libsecret-1-dev libgtksourceview-3.0-dev libpeas-dev dh-dlang \
+  libgtkd-3-dev libvted-3-dev
+```
+
+```bash
+# Install dependencies (Debian Testing / Sid — libgtkd-3-dev and
+# libvted-3-dev are no longer in the archive)
 sudo apt-get install libgtk-3-dev libvte-2.91-dev libatk1.0-dev \
   libcairo2-dev libpango1.0-dev librsvg2-dev libglib2.0-dev \
   libsecret-1-dev libgtksourceview-3.0-dev libpeas-dev dh-dlang
 
+# Then build and install GtkD v3.x from source — the same steps CI uses
+# are in .github/ci/make-install-deps-extern.sh
+```
+
+```bash
 # Build
 meson setup builddir --buildtype=release
 ninja -C builddir

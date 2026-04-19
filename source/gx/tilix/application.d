@@ -559,28 +559,13 @@ private:
 
     /**
      * Migrate config directory from ~/.config/tilix/ to ~/.config/ttyx/
-     * on first run after switching from Tilix. Copies (does not move)
-     * the directory so the original remains as a backup.
+     * on first run after switching from Tilix. Delegates to the
+     * testable free function migrateConfigBetween.
      */
     void migrateConfigFromTilix() {
         string oldConfig = buildPath(Util.getUserConfigDir(), "tilix");
         string newConfig = buildPath(Util.getUserConfigDir(), APPLICATION_CONFIG_FOLDER);
-        if (exists(oldConfig) && !exists(newConfig)) {
-            try {
-                mkdirRecurse(newConfig);
-                foreach (entry; dirEntries(oldConfig, SpanMode.breadth)) {
-                    string target = buildPath(newConfig, entry.name[oldConfig.length + 1 .. $]);
-                    if (entry.isDir) {
-                        mkdirRecurse(target);
-                    } else {
-                        copy(entry.name, target);
-                    }
-                }
-                info("Migrated config from " ~ oldConfig ~ " to " ~ newConfig);
-            } catch (Exception e) {
-                warning("Config migration failed: " ~ e.msg);
-            }
-        }
+        migrateConfigBetween(oldConfig, newConfig);
     }
 
     void applyPreferences() {
@@ -972,4 +957,276 @@ public:
     * this instead
     */
     GenericEvent!() onThemeChange;
+}
+
+/**
+ * Core migration logic, parameterized for testability.
+ *
+ * Copies oldConfig into newConfig only if:
+ *   - oldConfig exists and is not a symlink (don't follow a symlink root)
+ *   - newConfig does not exist (including not as a dangling symlink)
+ *
+ * Returns true if the migration ran to completion, false otherwise.
+ * See #49 for the attack vectors this guards against.
+ */
+package bool migrateConfigBetween(string oldConfig, string newConfig) {
+    import std.file : exists, getLinkAttributes, attrIsSymlink, mkdir;
+
+    if (!exists(oldConfig)) return false;
+
+    // If oldConfig is itself a symlink, refuse — don't follow it.
+    try {
+        if (getLinkAttributes(oldConfig).attrIsSymlink) {
+            warning("Config migration skipped: " ~ oldConfig ~ " is a symlink");
+            return false;
+        }
+    } catch (Exception e) {
+        warning("Config migration skipped: could not stat " ~ oldConfig);
+        return false;
+    }
+
+    // Refuse if anything exists at newConfig — including a dangling
+    // symlink, which plain exists() would report as absent.
+    try {
+        getLinkAttributes(newConfig);
+        return false; // already migrated or something is there
+    } catch (Exception) {
+        // newConfig doesn't exist, proceed
+    }
+
+    try {
+        // mkdir (not mkdirRecurse) errors if path exists, including
+        // as a symlink — provides some TOCTOU resistance.
+        mkdir(newConfig);
+        migrateTreeRecursive(oldConfig, newConfig);
+        info("Migrated config from " ~ oldConfig ~ " to " ~ newConfig);
+        return true;
+    } catch (Exception e) {
+        warning("Config migration failed: " ~ e.msg);
+        return false;
+    }
+}
+
+/**
+ * Walk src recursively, mirroring regular files and directories into
+ * dst. Symlinks are skipped with a warning. Paths that already exist
+ * at dst are skipped. Uses getLinkAttributes and SpanMode.shallow with
+ * followSymlink=false so the walker never follows a symlink.
+ *
+ * Free function (not a class method) so it can be unit-tested against
+ * temp directories without constructing a full Tilix application.
+ */
+package void migrateTreeRecursive(string src, string dst) {
+    import std.file : DirEntry, SpanMode, dirEntries, getLinkAttributes,
+                      attrIsSymlink, mkdir, copy;
+    import std.path : buildPath, baseName;
+
+    foreach (DirEntry entry; dirEntries(src, SpanMode.shallow, false)) {
+        string name = baseName(entry.name);
+        string target = buildPath(dst, name);
+
+        if (entry.isSymlink) {
+            warning("Skipping symlink during migration: " ~ entry.name);
+            continue;
+        }
+
+        // Check target doesn't already exist (including as a symlink).
+        // getLinkAttributes catches dangling symlinks that plain exists()
+        // would miss.
+        try {
+            getLinkAttributes(target);
+            warning("Skipping existing target during migration: " ~ target);
+            continue;
+        } catch (Exception) {
+            // target doesn't exist, good, proceed
+        }
+
+        if (entry.isDir) {
+            mkdir(target);
+            migrateTreeRecursive(entry.name, target);
+        } else if (entry.isFile) {
+            copy(entry.name, target);
+        }
+        // else: socket, pipe, device, etc. — skip silently.
+    }
+}
+
+// -- Unit tests for migrateTreeRecursive --
+
+version (unittest) {
+    import std.file : mkdir, mkdirRecurse, rmdirRecurse, write,
+                      symlink, exists, readText, tempDir;
+    import std.path : buildPath;
+    import std.uuid : randomUUID;
+}
+
+/// Source symlinks are skipped, regular files are copied.
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "src");
+    string dst = buildPath(tmpRoot, "dst");
+
+    mkdirRecurse(src);
+    write(buildPath(src, "safe.txt"), "ok");
+    symlink("/etc/passwd", buildPath(src, "evil"));
+    mkdir(dst);
+
+    migrateTreeRecursive(src, dst);
+
+    assert(exists(buildPath(dst, "safe.txt")));
+    assert(!exists(buildPath(dst, "evil")), "symlink should have been skipped");
+}
+
+/// Existing files at the destination are preserved, not overwritten.
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "src");
+    string dst = buildPath(tmpRoot, "dst");
+
+    mkdirRecurse(src);
+    write(buildPath(src, "file.txt"), "from_source");
+    mkdir(dst);
+    write(buildPath(dst, "file.txt"), "preexisting");
+
+    migrateTreeRecursive(src, dst);
+
+    assert(readText(buildPath(dst, "file.txt")) == "preexisting");
+}
+
+/// Nested directories are mirrored correctly.
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "src");
+    string dst = buildPath(tmpRoot, "dst");
+
+    mkdirRecurse(buildPath(src, "a", "b"));
+    write(buildPath(src, "a", "b", "deep.txt"), "deep_content");
+    mkdir(dst);
+
+    migrateTreeRecursive(src, dst);
+
+    assert(exists(buildPath(dst, "a", "b", "deep.txt")));
+    assert(readText(buildPath(dst, "a", "b", "deep.txt")) == "deep_content");
+}
+
+/// Symlinked directories in source are skipped entirely (not traversed).
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "src");
+    string dst = buildPath(tmpRoot, "dst");
+    string outside = buildPath(tmpRoot, "outside");
+
+    mkdirRecurse(src);
+    mkdirRecurse(outside);
+    write(buildPath(outside, "secret.txt"), "exfiltrated");
+    symlink(outside, buildPath(src, "link-to-outside"));
+    mkdir(dst);
+
+    migrateTreeRecursive(src, dst);
+
+    // The symlink should not have been followed, so the outside file
+    // should not appear in dst.
+    assert(!exists(buildPath(dst, "link-to-outside")));
+    assert(!exists(buildPath(dst, "link-to-outside", "secret.txt")));
+}
+
+// -- Unit tests for migrateConfigBetween --
+
+/// Normal case: src has content, dst doesn't exist, migration runs.
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "tilix");
+    string dst = buildPath(tmpRoot, "ttyx");
+
+    mkdirRecurse(src);
+    write(buildPath(src, "config.json"), "{}");
+
+    assert(migrateConfigBetween(src, dst));
+    assert(exists(buildPath(dst, "config.json")));
+}
+
+/// Refuses if source root is itself a symlink (attack: symlink ~/.config/tilix to /etc).
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string realDir = buildPath(tmpRoot, "real");
+    string srcLink = buildPath(tmpRoot, "tilix");
+    string dst = buildPath(tmpRoot, "ttyx");
+
+    mkdirRecurse(realDir);
+    write(buildPath(realDir, "sensitive.txt"), "secret");
+    symlink(realDir, srcLink);
+
+    assert(!migrateConfigBetween(srcLink, dst));
+    assert(!exists(dst), "dst should not have been created when src is a symlink");
+}
+
+/// Refuses if dest is a dangling symlink (attack: symlink ~/.config/ttyx to attacker-writable path).
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "tilix");
+    string dst = buildPath(tmpRoot, "ttyx");
+    string target = buildPath(tmpRoot, "nonexistent");
+
+    mkdirRecurse(src);
+    write(buildPath(src, "a.txt"), "payload");
+    // Create dangling symlink at dst pointing to a path that doesn't exist.
+    symlink(target, dst);
+
+    assert(!migrateConfigBetween(src, dst));
+    assert(!exists(target), "dangling symlink should not have been written through");
+}
+
+/// Refuses if destination already exists as a regular directory.
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "tilix");
+    string dst = buildPath(tmpRoot, "ttyx");
+
+    mkdirRecurse(src);
+    write(buildPath(src, "a.txt"), "new");
+    mkdirRecurse(dst);
+    write(buildPath(dst, "existing.txt"), "keep");
+
+    assert(!migrateConfigBetween(src, dst));
+    // Existing content is preserved; nothing from src was copied.
+    assert(exists(buildPath(dst, "existing.txt")));
+    assert(!exists(buildPath(dst, "a.txt")));
+}
+
+/// Returns false when source doesn't exist (no migration needed).
+unittest {
+    string tmpRoot = buildPath(tempDir(), "ttyx-migration-test-" ~ randomUUID.toString);
+    scope(exit) {
+        if (exists(tmpRoot)) rmdirRecurse(tmpRoot);
+    }
+    string src = buildPath(tmpRoot, "tilix");
+    string dst = buildPath(tmpRoot, "ttyx");
+
+    // src is never created.
+    assert(!migrateConfigBetween(src, dst));
+    assert(!exists(dst));
 }

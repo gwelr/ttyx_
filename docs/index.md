@@ -54,6 +54,7 @@ See [**What's new vs Tilix**]({{ site.baseurl }}/whats-new/) for the full compar
 - [**What's new vs Tilix**]({{ site.baseurl }}/whats-new/) — feature-level differences from upstream.
 - [**Changelog**]({{ site.baseurl }}/changelog/) — per-release notes.
 - [**Migrating from Tilix**]({{ site.baseurl }}/migrating/) — what ttyx_ does with your existing Tilix config on first run.
+- [**Development**]({{ site.baseurl }}/develop/) — build, test, and debug ttyx_ from source; code-style and PR conventions.
 - [**Report an issue**](https://github.com/gwelr/ttyx_/issues) — bug reports and feature requests.
 
 ---

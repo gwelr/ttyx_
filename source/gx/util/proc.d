@@ -37,7 +37,7 @@ ProcStatus readProcStatus(pid_t pid) {
     import std.string : splitLines, startsWith, split;
 
     if (pid <= 0) return ProcStatus.init;
-    auto path = format("/proc/%d/status", pid);
+    string path = format("/proc/%d/status", pid);
     if (!exists(path)) return ProcStatus.init;
     try {
         string data = to!string(cast(char[]) read(path));
@@ -45,13 +45,13 @@ ProcStatus readProcStatus(pid_t pid) {
         bool sawUid = false;
         foreach (line; data.splitLines()) {
             if (line.startsWith("Uid:")) {
-                auto fields = line.split();
+                string[] fields = line.split();
                 if (fields.length >= 3) {
                     result.uid = to!int(fields[2]);
                     sawUid = true;
                 }
             } else if (line.startsWith("PPid:")) {
-                auto fields = line.split();
+                string[] fields = line.split();
                 if (fields.length >= 2) {
                     result.ppid = to!pid_t(fields[1]);
                 }
@@ -74,7 +74,7 @@ bool checkProcessTreeForRoot(pid_t startPid) {
     pid_t currentPid = startPid;
     for (int depth = 0; depth < 10; depth++) {
         if (currentPid <= 1) break;
-        auto status = readProcStatus(currentPid);
+        ProcStatus status = readProcStatus(currentPid);
         if (!status.isValid()) break;
         if (status.uid == 0) return true;
         currentPid = status.ppid;
@@ -109,7 +109,7 @@ unittest {
 
 unittest {
     // Init (pid 1) always runs as root on Linux and has no parent.
-    auto s = readProcStatus(1);
+    ProcStatus s = readProcStatus(1);
     assert(s.isValid());
     assert(s.uid == 0);
     assert(s.ppid == 0);
@@ -118,7 +118,7 @@ unittest {
 unittest {
     // The current process exists and is parseable.
     import core.sys.posix.unistd : getpid;
-    auto s = readProcStatus(getpid());
+    ProcStatus s = readProcStatus(getpid());
     assert(s.isValid());
     assert(s.ppid > 0);
 }

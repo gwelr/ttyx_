@@ -69,7 +69,7 @@ string[string] parsePairs(string input, string pairSep = ";", string kvSep = "="
     string[string] result;
     if (input.length == 0) return result;
     foreach (chunk; input.split(pairSep)) {
-        auto idx = chunk.indexOf(kvSep);
+        ptrdiff_t idx = chunk.indexOf(kvSep);
         if (idx < 0) continue;
         string key = chunk[0 .. idx].strip();
         string value = chunk[idx + kvSep.length .. $].strip();
@@ -80,7 +80,7 @@ string[string] parsePairs(string input, string pairSep = ";", string kvSep = "="
 
 /// Test: single and multiple pairs, default separators.
 unittest {
-    auto m = parsePairs("a=1");
+    string[string] m = parsePairs("a=1");
     assert(m.length == 1 && m["a"] == "1");
 
     m = parsePairs("a=1;b=2;c=3");
@@ -90,14 +90,14 @@ unittest {
 
 /// Test: whitespace around keys and values is trimmed.
 unittest {
-    auto m = parsePairs("  a  = 1 ; b=  foo bar  ");
+    string[string] m = parsePairs("  a  = 1 ; b=  foo bar  ");
     assert(m["a"] == "1");
     assert(m["b"] == "foo bar"); // internal whitespace preserved
 }
 
 /// Test: chunks without a kvSep are skipped silently.
 unittest {
-    auto m = parsePairs("a=1;broken;b=2");
+    string[string] m = parsePairs("a=1;broken;b=2");
     assert(m.length == 2);
     assert(m["a"] == "1" && m["b"] == "2");
 }
@@ -106,7 +106,7 @@ unittest {
 unittest {
     assert(parsePairs("").length == 0);
     assert(parsePairs(";;;").length == 0);
-    auto m = parsePairs("=value");  // empty key retained
+    string[string] m = parsePairs("=value");  // empty key retained
     assert(m.length == 1 && m[""] == "value");
     m = parsePairs("key=");         // empty value retained
     assert(m.length == 1 && m["key"] == "");
@@ -114,33 +114,33 @@ unittest {
 
 /// Test: trailing/leading separator is tolerated.
 unittest {
-    auto m = parsePairs(";a=1;b=2;");
+    string[string] m = parsePairs(";a=1;b=2;");
     assert(m.length == 2);
     assert(m["a"] == "1" && m["b"] == "2");
 }
 
 /// Test: duplicate keys — last wins.
 unittest {
-    auto m = parsePairs("a=1;a=2;a=3");
+    string[string] m = parsePairs("a=1;a=2;a=3");
     assert(m["a"] == "3");
 }
 
 /// Test: the value may itself contain `=`; only the first separator splits.
 unittest {
-    auto m = parsePairs("url=http://x.example/?q=1&r=2");
+    string[string] m = parsePairs("url=http://x.example/?q=1&r=2");
     assert(m["url"] == "http://x.example/?q=1&r=2");
 }
 
 /// Test: custom separators (non-default).
 unittest {
-    auto m = parsePairs("a:1,b:2,c:3", ",", ":");
+    string[string] m = parsePairs("a:1,b:2,c:3", ",", ":");
     assert(m.length == 3);
     assert(m["a"] == "1" && m["b"] == "2" && m["c"] == "3");
 }
 
 /// Test: multi-character separators (verifies kvSep.length is used, not +1).
 unittest {
-    auto m = parsePairs("a => 1 || b => 2", "||", "=>");
+    string[string] m = parsePairs("a => 1 || b => 2", "||", "=>");
     assert(m.length == 2);
     assert(m["a"] == "1" && m["b"] == "2");
 }
@@ -150,7 +150,7 @@ unittest {
 /// containing two or more `=` characters. parsePairs preserves such
 /// inputs by splitting at the first kvSep only.
 unittest {
-    auto m = parsePairs("a==b");
+    string[string] m = parsePairs("a==b");
     assert(m.length == 1);
     assert(m["a"] == "=b");
 }

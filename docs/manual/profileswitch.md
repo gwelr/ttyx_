@@ -5,30 +5,46 @@ nav_order: 6
 layout: default
 ---
 
-#### Introduction
+## Overview
 
-ttyx_ supports automatically switching profiles based on certain conditions which is useful in a variety of situations such as when switching users, connecting to different hosts, changing to sensitive directories, etc. At the moment ttyx_ supports triggering a profile change based on the following:
+ttyx_ can switch profiles automatically based on context — useful for switching users, connecting to different hosts, or marking sensitive directories. Profile changes can be triggered on any of:
 
-* username
-* hostname
-* current directory
+* **username** — extracted from the shell prompt via a trigger
+* **hostname** — reported by the shell (local, or OSC 7 from a remote)
+* **current directory** — the terminal's cwd
 
-Note that when an automatic profile change is active, the menu to switch to different profiles will be disabled.
+When an automatic profile change is active, the manual profile picker is disabled so you can't accidentally override it.
 
-#### Local Configuration
+## Local configuration
 
-Configuring profile switching in ttyx_ is done in the Advanced tab of the profile settings. Here you can configure the list of usernames, hostnames and directories that will trigger the profile change. The format used for the string is ```username@hostname:directory``` where either username, hostname or directory can be omitted but not all. Also at least one delimiter, either *@* or *:*, is also required to indicate which string is being represented.
+Configure profile switching in **Preferences → Profile → Advanced**. Each entry in the match list uses the format:
 
-**Note** that switching profiles based on username requires the use of a trigger to extract the username from the terminal output text. Triggers in turn require a patched VTE, see the [Triggers]({{ site.baseurl }}/manual/triggers/) page for more information.
+```
+username@hostname:directory
+```
 
-#### Remote Configuration
+Any one of `username`, `hostname`, or `directory` may be omitted, but at least one must be present and at least one delimiter (`@` or `:`) is required to indicate which string is which.
 
-To enable profile changes when using SSH to connect to remote systems, the remote system must be configured to include an additional script or an appropriate trigger configured. 
+**Username-based switching** requires extracting the username from terminal output via a [trigger]({{ site.baseurl }}/manual/triggers/). See the Triggers page for the `Update State` action with a `username=$1` parameter.
 
-If you opt for the script, first scp the script ```/usr/share/ttyx/scripts/ttyx_int.sh``` from your local system where ttyx_ is installed to the remote system. You will then need to source this script on the remote system, the easiest way to do this is to modify the .bashrc of the user you use to connect to include the script. For example, add the following to .bashrc:
+## Remote configuration
+
+To enable profile changes when SSHing into remote systems, the remote shell needs to report the working directory and/or hostname back to ttyx_. Two options:
+
+### 1. Use the bundled integration script (recommended)
+
+ttyx_ ships `/usr/share/ttyx/scripts/ttyx_int.sh`, which reports the current directory back via OSC 7 escape sequences. Copy it to the remote host and source it from your shell rc:
 
 {% highlight bash %}
-. ./ttyx_int.sh
+# On your local system:
+scp /usr/share/ttyx/scripts/ttyx_int.sh user@remote:~/
+
+# On the remote system, add to ~/.bashrc or ~/.zshrc:
+. ~/ttyx_int.sh
 {% endhighlight %}
 
-if you switch users on the remote system, you may need to source the script somewhere so it is available to all users.
+If you switch users on the remote system, source the script somewhere available to all users (e.g. `/etc/profile.d/`) so it applies to every shell.
+
+### 2. Configure a trigger
+
+Alternatively, a trigger against the shell prompt can extract both username and hostname without a helper script. See the [Triggers example]({{ site.baseurl }}/manual/triggers/#example) — a regex against a `[user@host dir]$` prompt feeds the Update State action.

@@ -5,42 +5,50 @@ nav_order: 9
 layout: default
 ---
 
-#### Background
+## Background
 
-ttyx_ uses a GTK+ 3 widget called VTE (Virtual Terminal Emulator). The VTE widget was originally designed as the back-end for Gnome Terminal but was fortunately designed as a GTK widget so that other terminal emulator applications could leverage it instead of rolling their own. Many popular Linux terminal emulators use this component.
+ttyx_ uses a GTK+ 3 widget called **VTE** (Virtual Terminal Emulator), originally built as the back-end for GNOME Terminal and now used by most GTK-based terminal emulators including ttyx_.
 
-One aspect of VTE configuration is the use of /etc/profile.d/vte.sh. The VTE uses this script to override the PROMPT_COMMAND in order to feed itself additional information via terminal control codes. In particular, this script is used to tell the VTE the current directory of the shell. Previously the VTE component used to read this from /proc/&lt;pid&gt;/cwd however according to [VTE upstream](https://bugzilla.gnome.org/show_bug.cgi?id=697475) there were a number of issues with this approach and hence the change to /etc/profile.d/vte.sh.
+VTE relies on a helper script — typically `/etc/profile.d/vte.sh` — to hook the shell's `PROMPT_COMMAND` and emit terminal control codes that tell the emulator what directory the shell is in. Earlier VTE versions read this from `/proc/<pid>/cwd`, but that approach had [reliability issues](https://bugzilla.gnome.org/show_bug.cgi?id=697475), so VTE moved to the script-based approach.
 
-The issue with this change though is that different distributions treat /etc/profile.d differently. The expectation is that when a shell is initiated all scripts in /etc/profile.d are executed. On Fedora, this works as expected for both login and non-login based shells. However, other distributions (Ubuntu and Arch at least) only execute scripts in /etc/profile.d for login shells. The problem with this is the default configuration for most terminal emulators using VTE, including Gnome Terminal and ttyx_, is to not run the shell as a login shell.
+The catch: different distributions treat `/etc/profile.d/` differently. On Fedora, scripts there run for both login and non-login shells; on Ubuntu and Arch, they only run for login shells. Since most terminal emulators — including ttyx_ — don't launch shells as login shells by default, the VTE hook never fires.
 
-#### Impact
+## Impact
 
-This means that on some Linux distributions vte.sh never gets executed and VTE loses certain features that are dependent on the PROMPT_COMMAND. In particular, the two features that we know are impacted:
+When the VTE helper doesn't run, the current directory stops being reported. Concretely: splitting a terminal in ttyx_ opens the split in your home directory instead of inheriting the parent's cwd.
 
-* The current directory is never reported by VTE. This means when splitting terminals in ttyx_ instead of inheriting the directory from the current terminal the split terminal always opens in your home terminal. Gnome Terminal has the same issue when creating new tabs
-* The Fedora patched VTE that provides notification support depends on PROMPT_COMMAND, so this issue means notifications will not work.
+## Fixing it
 
-#### Fixing the issue
+Pick whichever is easiest.
 
-Fortunately fixing this issue is quite easy, you can do either of the two options below.
+### Option 1 — Use the bundled ttyx_ integration script
 
-##### 1. Source vte.sh in bashrc
+ttyx_ ships its own integration script at `/usr/share/ttyx/scripts/ttyx_int.sh` that does the same job as `vte.sh`: it hooks `PROMPT_COMMAND` to emit OSC 7 sequences telling the emulator the shell's cwd. Source it from your rc file:
 
-Update ```~/.bashrc``` (or ```~/.zshrc``` if you are using zsh) to execute vte.sh directly, this involves adding the following line at the end of the file.
 {% highlight bash %}
-if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
-        source /etc/profile.d/vte.sh
+# ~/.bashrc or ~/.zshrc
+. /usr/share/ttyx/scripts/ttyx_int.sh
+{% endhighlight %}
+
+This is also the recommended approach for [remote hosts over SSH]({{ site.baseurl }}/manual/profileswitch/#remote-configuration).
+
+### Option 2 — Source vte.sh manually
+
+Add this to `~/.bashrc` (or `~/.zshrc`):
+
+{% highlight bash %}
+if [ "$TTYX_ID" ] || [ "$TILIX_ID" ] || [ "$VTE_VERSION" ]; then
+    source /etc/profile.d/vte.sh
 fi
 {% endhighlight %}
 
-On Ubuntu (16.04 or 16.10), a symlink is probably missing. You can create it with: 
+On older Ubuntu releases a symlink may be missing:
+
 {% highlight bash %}
-ln -s /etc/profile.d/vte-2.91.sh /etc/profile.d/vte.sh
+sudo ln -s /etc/profile.d/vte-2.91.sh /etc/profile.d/vte.sh
 {% endhighlight %}
-If you use a custom `PROMPT_COMMAND` instead of simply overriding `PS1` you also
-need to update your `PROMPT_COMMAND` to append working directory information.
-This can be achieved by calling `__vte_osc7` which gets defined when you source
-`/etc/profile.d/vte-2.91.sh`.
+
+If you use a custom `PROMPT_COMMAND` instead of simply overriding `PS1`, your `PROMPT_COMMAND` needs to append working-directory information. Calling `__vte_osc7` (defined by `vte-2.91.sh`) does this:
 
 {% highlight bash %}
 function custom_prompt() {
@@ -51,8 +59,8 @@ function custom_prompt() {
 PROMPT_COMMAND=custom_prompt
 {% endhighlight %}
 
-##### 2. OR use a login shell
+### Option 3 — Run the shell as a login shell
 
-Enable the option in your ttyx_ Profile (under Preferences) to use a login shell, the screenshot below shows the option that needs to be checked.
+Enable **Preferences → Profile → Command → Run command as login shell**. Login shells run `/etc/profile.d/*` scripts on any distribution, so this fixes the issue at the cost of running your full login environment every time you open a terminal.
 
-![Profile - Command]({{ site.baseurl }}/assets/images/manual/login_shell_preference.png)
+![Profile preferences showing the Run command as login shell option]({{ site.baseurl }}/assets/images/manual/login_shell_preference.png)

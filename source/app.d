@@ -25,6 +25,7 @@ import gx.gtk.vte;
 import gx.tilix.application;
 import gx.tilix.cmdparams;
 import gx.tilix.constants;
+import gx.util.redact : stripUrlUserinfo;
 
 /**
  * Resolve the file path for the debug log (only used when USE_FILE_LOGGING is on).
@@ -105,7 +106,7 @@ int main(string[] args) {
 
     //Debug args
     foreach(i, arg; args) {
-        tracef("args[%d]=%s", i, arg);
+        tracef("args[%d]=%s", i, stripUrlUserinfo(arg));
     }
 
     // Look for execute command and convert it into a normal -e
@@ -133,7 +134,7 @@ int main(string[] args) {
                     }
                 }
             }
-            trace("Execute Command: " ~ executeCommand);
+            trace("Execute Command: " ~ stripUrlUserinfo(executeCommand));
             args = args[0..i];
             if (arg == "-x") {
                 args ~= "-e";
@@ -155,7 +156,7 @@ int main(string[] args) {
 
     trace(format("Starting ttyx with %d arguments...", args.length));
     foreach(i, arg; args) {
-        trace(format("arg[%d] = %s",i, arg));
+        trace(format("arg[%d] = %s", i, stripUrlUserinfo(arg)));
         // Workaround issue with Unity and older Gnome Shell when DBusActivatable sometimes CWD is set to /, see #285
         if (arg == "--gapplication-service" && pwd == uhd && cwd == "/") {
             info("Detecting DBusActivatable with improper directory, correcting by setting CWD to PWD");

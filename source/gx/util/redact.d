@@ -49,14 +49,18 @@ string redactSensitive(string key, string value) {
 }
 
 /**
- * Remove the userinfo segment (user:password@) from a URL-shaped string.
- * If the input is not URL-shaped or contains no userinfo, it is returned
- * verbatim.
+ * Remove the userinfo segment (user:password@) from any URL-shaped
+ * substring. The regex is unanchored so strings containing embedded URLs
+ * (e.g. command lines like `psql postgresql://u:p@h/d`) are sanitized
+ * too, not only strings that are URLs themselves. Inputs with no URL
+ * match are returned verbatim.
  */
-string stripUrlUserinfo(string url) {
-    // scheme://userinfo@rest  -->  scheme://rest
-    static auto re = regex(r"^([a-zA-Z][a-zA-Z0-9+.-]*://)[^/@]+@");
-    return url.replaceAll(re, "$1");
+string stripUrlUserinfo(string input) {
+    // `[^/\s]+@` with greedy backtracking captures up to the last `@`
+    // that precedes `/` or whitespace, so unescaped `@` inside a password
+    // (e.g. http://user:p@ss@host/) doesn't leak past the stripping.
+    static auto re = regex(r"([a-zA-Z][a-zA-Z0-9+.-]*://)[^/\s]+@");
+    return input.replaceAll(re, "$1");
 }
 
 // -- tests --------------------------------------------------------------
@@ -107,4 +111,43 @@ unittest {
     assert(stripUrlUserinfo("not-a-url") == "not-a-url");
     assert(stripUrlUserinfo("") == "");
     assert(stripUrlUserinfo("http://host/path") == "http://host/path");
+}
+
+unittest {
+    // URL embedded in a larger string — e.g. an argv with a command.
+    assert(stripUrlUserinfo("psql postgresql://alice:secret@db.corp/app")
+        == "psql postgresql://db.corp/app");
+    assert(stripUrlUserinfo("curl -u x https://u:p@api.example.com/path things after")
+        == "curl -u x https://api.example.com/path things after");
+}
+
+unittest {
+    // Multiple URLs in the same string: every occurrence is sanitized.
+    assert(stripUrlUserinfo("from http://a:b@h1/ to https://c:d@h2/")
+        == "from http://h1/ to https://h2/");
+}
+
+unittest {
+    // Unescaped `@` inside the password: greedy backtracking strips
+    // up to the last `@` before the host boundary, not the first.
+    assert(stripUrlUserinfo("http://user:p@ss@host.example/path")
+        == "http://host.example/path");
+    assert(stripUrlUserinfo("https://a@b@c@host/")
+        == "https://host/");
+}
+
+unittest {
+    // An email-like token near a URL must not be confused with userinfo.
+    // The `@` is separated by whitespace, so the regex cannot span it.
+    assert(stripUrlUserinfo("URL http://site/ contact admin@co.com")
+        == "URL http://site/ contact admin@co.com");
+    assert(stripUrlUserinfo("admin@co.com") == "admin@co.com");
+}
+
+unittest {
+    // Non-http(s) schemes with userinfo are sanitized too.
+    assert(stripUrlUserinfo("ftp://u:p@ftp.example.com/file")
+        == "ftp://ftp.example.com/file");
+    assert(stripUrlUserinfo("git://dev:token@git.internal/repo.git")
+        == "git://git.internal/repo.git");
 }

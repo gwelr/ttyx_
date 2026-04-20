@@ -5,7 +5,7 @@ nav_order: 1
 layout: default
 ---
 
-Tilix support using variables in the various titles and names it allows to be configured. This enables the title to better reflect the current state of the application, session or currently focused terminal. Variables are available within a particular scope and can always be used in higher scopes. For example, the ${title} is a terminal scope variable but can be used in session and application titles where it reflects the currently active terminal.
+ttyx_ support using variables in the various titles and names it allows to be configured. This enables the title to better reflect the current state of the application, session or currently focused terminal. Variables are available within a particular scope and can always be used in higher scopes. For example, the ${title} is a terminal scope variable but can be used in session and application titles where it reflects the currently active terminal.
 
 Variables can be used in the following locations:
 
@@ -41,7 +41,7 @@ The following additional variables are supported in all titles except terminal t
 
 Variable | Description
 -------|------------
-${appName} | The name of the application, i.e. Tilix
+${appName} | The name of the application, i.e. ttyx_
 ${sessionName} | The name of the session
 ${sessionCount} | The total number of sessions
 ${sessionNumber} | The number of the session, i.e. session 2 out of 4 active

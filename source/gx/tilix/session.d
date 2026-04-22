@@ -1850,6 +1850,16 @@ private:
             PanedNode[] nodes = getBranch(root, i);
             tracef("Branch %d has %d nodes", i, nodes.length);
             foreach (n; nodes) {
+                // Update the TerminalPaned's ratio so the size-allocate
+                // handler doesn't revert our setPosition to allocatedWidth*ratio
+                // on the next layout pass. pos/size is the correct ratio for
+                // this paned within its share of the chain (e.g. in a 4-leaf
+                // horizontal chain the outermost paned gets 1/4, the next 1/3,
+                // the innermost 1/2).
+                TerminalPaned tp = cast(TerminalPaned) n.paned;
+                if (tp !is null && n.size > 0) {
+                    tp.ratio = cast(double) n.pos / cast(double) n.size;
+                }
                 tracef("    1st pass, Node set to pos %d from pos %d", n.pos, n.paned.getPosition());
                 n.paned.setPosition(n.pos);
                 // Add idle handler to reset child properties and take one more stab at setting position. GTKPaned

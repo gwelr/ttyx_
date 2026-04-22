@@ -86,4 +86,4 @@ Upstream Tilix development stalled with known issues unresolved. ttyx_ ships fix
 - Shells inside terminals get both `TTYX_ID` and `TILIX_ID` set, so existing shell-integration scripts continue to work.
 - On first run, `~/.config/tilix/` is copied to `~/.config/ttyx/`; the original is left in place as a backup.
 
-See [Migrating from Tilix](https://github.com/gwelr/ttyx_#migrating-from-tilix) for the full migration checklist.
+See [Migrating from Tilix]({{ site.baseurl }}/migrating/) for the full migration checklist.

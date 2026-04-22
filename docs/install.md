@@ -125,4 +125,17 @@ On first run:
 
 ## Troubleshooting
 
-If the app icon appears as a broken placeholder after a Flatpak install, the likely cause is a stale icon cache. See the [Troubleshooting section in the README](https://github.com/gwelr/ttyx_#troubleshooting) for the one-line fix and for Wayland Quake-mode notes.
+### App icon shows as a broken placeholder
+
+Typically a stale icon cache from a previous install. Clear the user-level cache and let GTK regenerate it:
+
+```bash
+rm -f ~/.local/share/flatpak/exports/share/icons/hicolor/icon-theme.cache
+gtk-update-icon-cache -f ~/.local/share/flatpak/exports/share/icons/hicolor/
+```
+
+Then relaunch ttyx_.
+
+### Quake mode doesn't position correctly on Wayland
+
+See the [Wayland section on the Quake manual page]({{ site.baseurl }}/manual/quake/#wayland) for compositor-specific notes and workarounds.

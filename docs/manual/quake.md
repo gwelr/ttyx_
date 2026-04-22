@@ -27,7 +27,7 @@ Open **Settings → Keyboard → View and Customize Shortcuts → Custom Shortcu
 
 ## Wayland
 
-Quake mode relies on X11 window-positioning APIs that Wayland compositors don't expose to applications, so behaviour is compositor-dependent. GNOME Shell in particular cannot position windows from the application side. See the [README's Troubleshooting section](https://github.com/gwelr/ttyx_#quake-mode-doesnt-position-correctly-wayland) for the current state.
+Quake mode relies on X11 window-positioning APIs that Wayland compositors don't expose to applications, so behaviour is compositor-dependent. GNOME Shell in particular cannot position windows from the application side.
 
 Two workarounds:
 

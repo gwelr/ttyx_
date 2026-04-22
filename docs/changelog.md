@@ -21,4 +21,4 @@ ttyx_ is a freetime project and releases are irregular. See the [GitHub Releases
 
 ## Reporting issues
 
-Bug reports belong in the [issue tracker](https://github.com/gwelr/ttyx_/issues). See the README's [Contributing](https://github.com/gwelr/ttyx_#contributing) section for what a complete bug report should include.
+Bug reports belong in the [issue tracker](https://github.com/gwelr/ttyx_/issues). See [CONTRIBUTING.md](https://github.com/gwelr/ttyx_/blob/master/CONTRIBUTING.md) for what a complete bug report should include.

@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Unit tests for the proxy URL builder, sensitive-value redaction, and process introspection helpers (#55, #56, #58).
 
 ### Changed
+- **`enable-wide-handle` now defaults to `true`** — the splitter between split terminals is now wide by default, making it easier to see and grab on dark themes and HiDPI displays. Existing users who have explicitly toggled this preference are unaffected; only fresh installs and users who never touched it pick up the new default. Set to `false` to restore the previous 1-pixel splitter (#48).
 - Extracted pure helpers out of the terminal widget module to reduce complexity and unlock testing: `pointInTriangle` → `gx.util.geometry`, `parsePairs` → `gx.util.string`, process introspection → `gx.util.proc` (#57, #58).
 - Process root detection now goes through a single `readProcStatus` helper; the `/proc/[pid]/status` parser was previously duplicated across `monitor.d` and `activeprocess.d` (#58).
 - Debug log path resolution now prefers `$XDG_RUNTIME_DIR/ttyx.log` over `/tmp/ttyx.log` when file logging is enabled (#55).

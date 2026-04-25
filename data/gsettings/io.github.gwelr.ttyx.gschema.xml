@@ -223,9 +223,9 @@
       <description>When enabled, the terminal title bar will remain visible when only a single terminal exists in the session</description>
     </key>
     <key name="enable-wide-handle" type="b">
-      <default>false</default>
-      <summary>Whether splitters use a narrow (default) or wide handle</summary>
-      <description>If true, splitters between terminals use a wide handle. Only supported in GTK 2.16 and later.</description>
+      <default>true</default>
+      <summary>Whether splitters between terminals use a wide handle</summary>
+      <description>If true, splitters between split terminals use a wide handle that is easier to see and grab — especially on dark themes and HiDPI displays. If false, the splitters are 1 pixel wide. Defaults to true; users who prefer the narrower split can set this to false.</description>
     </key>
     <key name="auto-equalize-panes" type="b">
       <default>true</default>

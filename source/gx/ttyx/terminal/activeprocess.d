@@ -46,14 +46,33 @@ class Process {
     string[] parseStatFile() {
         try {
             string data = to!string(cast(char[])read(format("/proc/%d/stat", pid)));
-            size_t rpar = data.lastIndexOf(")");
-            string name = data[data.indexOf("(") + 1..rpar];
-            string[] other  = data[rpar + 2..data.length].split;
-            return name ~ other;
-        } catch (FileException fe) {
-            warning(fe);
-            }
+            string[] parsed = parseStatData(data);
+            if (parsed !is null) return parsed;
+            warningf("Malformed /proc/%d/stat (len=%s)", pid, data.length);
+        } catch (Exception e) {
+            // FileException from read() (process exited / not accessible),
+            // plus any future to!*-derived ConvException. RangeError from
+            // out-of-bounds slicing is prevented by parseStatData's checks.
+            warning(e);
+        }
         return "? 0 0 0 0 0 0".split;
+    }
+
+    /**
+    * Parse a /proc/[pid]/stat line into [name, field3, field4, ...].
+    * Returns null if the buffer is malformed (truncated read, missing
+    * parentheses, or wrong order). Pure function — no I/O — so callers
+    * can unit-test it with synthetic input.
+    */
+    package static string[] parseStatData(string data) {
+        size_t lpar = data.indexOf("(");
+        size_t rpar = data.lastIndexOf(")");
+        if (lpar == -1 || rpar == -1 || lpar >= rpar || rpar + 2 > data.length) {
+            return null;
+        }
+        string name = data[lpar + 1 .. rpar];
+        string[] other = data[rpar + 2 .. $].split;
+        return name ~ other;
     }
 
     /**
@@ -264,4 +283,42 @@ unittest {
     // the wiring against init (pid 1), which always runs as root.
     auto p = new Process(1);
     assert(p.isRoot());
+}
+
+unittest {
+    // parseStatData: well-formed line splits cleanly.
+    string[] r = Process.parseStatData("123 (bash) S 100 123 123 34816 200 0 0");
+    assert(r !is null);
+    assert(r[0] == "bash");
+    assert(r[1] == "S");
+    assert(r[2] == "100");
+}
+
+unittest {
+    // parseStatData: name containing ')' — lastIndexOf finds the right paren.
+    string[] r = Process.parseStatData("123 (weird )name) S 100 123");
+    assert(r !is null);
+    assert(r[0] == "weird )name");
+    assert(r[1] == "S");
+}
+
+unittest {
+    // parseStatData: malformed inputs return null instead of crashing.
+    assert(Process.parseStatData("") is null);                // empty
+    assert(Process.parseStatData("123 bash S 100") is null);  // no parens
+    assert(Process.parseStatData("123 (bash") is null);       // no rpar
+    assert(Process.parseStatData("123 bash) S") is null);     // no lpar
+    assert(Process.parseStatData("123 )bash( S") is null);    // lpar > rpar
+    assert(Process.parseStatData("123 (bash)") is null);      // truncated after rpar
+    assert(Process.parseStatData("123 (bash))") is null);     // only 1 char after rpar
+}
+
+unittest {
+    // parseStatFile fallback: non-existent PID returns the sentinel array
+    // so the rest of Process keeps working without crashing.
+    auto p = new Process(999_999_999);
+    assert(p.processStat.length >= 7);
+    assert(p.processStat[0] == "?");
+    assert(!p.hasTTY());          // sentinel field 5 is "0" → false
+    assert(!p.isForeground());    // pidExists() is false → false
 }

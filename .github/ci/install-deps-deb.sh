@@ -15,14 +15,18 @@ apt-get install -yq \
         eatmydata \
         build-essential
 
-# install build dependencies
+# install build dependencies. Note: ldc is installed from the upstream
+# tarball by install-ldc-tarball.sh — it is currently missing from
+# Debian Testing during a transition. curl/xz-utils/ca-certificates are
+# the tools that script needs.
 eatmydata apt-get install -yq \
         meson \
         ninja-build \
         appstream \
+        ca-certificates \
+        curl \
         desktop-file-utils \
         git \
-        ldc \
         libatk1.0-dev \
         libcairo2-dev \
         libglib2.0-dev \
@@ -34,4 +38,5 @@ eatmydata apt-get install -yq \
         libpeas-dev \
         libvte-2.91-dev \
         po4a \
-        xvfb
+        xvfb \
+        xz-utils

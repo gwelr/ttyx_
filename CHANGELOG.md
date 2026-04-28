@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Debug log path resolution now prefers `$XDG_RUNTIME_DIR/ttyx.log` over `/tmp/ttyx.log` when file logging is enabled (#55).
 
 ### Fixed
+- **Maximized terminal not restored on session load** — loading a saved session whose JSON has `maximized: true` on a child no longer leaves the user looking at the half-empty Paned. Root cause: `gtk_stack_set_visible_child` is a silent no-op when the target child has never been shown, and on the restore path `parseSession` runs before `nb.showAll()` cascades show to the stack pages. Fixed by explicitly calling `show()` on the maximized stack page before switching to it; idempotent in the user-triggered Ctrl+Shift+X path. Pre-existing since the upstream Tilix 2017 implementation; surfaced in #91 during the #89 refactor smoke test (#91).
 - **Password manager delete silently failed** — the delete button claimed success even when the keyring operation failed, and legacy-schema entries from the Tilix migration couldn't be deleted at all (#50, #54).
 - **Proxy URL malformed** — the generated `http_proxy` URL had a redundant leading `@` before userinfo, which strict RFC-3986 parsers reject; credentials were also not percent-encoded, so passwords containing `@`, `:`, `/` broke the URL entirely (#51, #55).
 - **`https_proxy` missing authentication** — the auth block was gated on `scheme == "http"` so the HTTPS proxy never received credentials even when configured (#51, #55).

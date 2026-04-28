@@ -735,6 +735,14 @@ private:
         stackMaximized.add(terminal);
         trace("Switching stack to maximized page");
         terminal.show();
+        // gtk_stack_set_visible_child is a silent no-op if the target child
+        // has never had gtk_widget_show called on it. On the session-restore
+        // path this method runs before nb.showAll() cascades show to our
+        // stack pages, so without this explicit show() the maximize state is
+        // lost — GtkStack later picks the first shown child (stackGroup) as
+        // visible-child, leaving the user looking at the half-empty Paned.
+        // Idempotent in the user-triggered Ctrl+Shift+X path. (#91)
+        stackMaximized.show();
         setVisibleChild(stackMaximized);
         notifySessionStateChange(SessionStateChange.TERMINAL_MAXIMIZED);
         return true;

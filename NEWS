@@ -1,3 +1,45 @@
+Version 1.2.0-beta.1
+~~~~~~~~~~~~~~~~~~~~
+Released: 2026-04-29
+
+Features:
+ * OSC 11 dynamic background color — apps like neovim and theme-switching
+   scripts can now change the terminal background at runtime via the OSC 11
+   escape sequence; reset with OSC 111
+ * enable-wide-handle defaults to true so the splitter between split
+   terminals is easier to see and grab on dark themes and HiDPI displays
+ * Auto-equalize panes on split and close, sway-style
+ * Documentation site at https://gwelr.github.io/ttyx_/
+ * Sensitive values redaction: passwords, tokens and proxy credentials are
+   stripped from trace logs, command-line argv and hyperlink click events
+   before reaching any log sink
+
+Bugfixes:
+ * Maximized terminal now correctly restores when loading a saved session;
+   fixes a long-standing bug pre-existing since the upstream Tilix 2017
+   implementation
+ * Trigger templates: $0 now correctly substitutes the whole match (was
+   shifted by one due to a size_t underflow); user templates relying on the
+   bugged behaviour need indices shifted up by one
+ * Triggers with an unrecognised action name are now skipped with a warning
+   instead of silently rewritten to UpdateState
+ * Paste hardening: strip OSC, DCS, APC and PM escape sequences from
+   clipboard content before paste
+ * Robust /proc/[pid]/stat parser with bounds validation
+ * Password manager delete now correctly reports keyring failures and
+   handles legacy Tilix-schema entries
+ * Proxy URL builder: percent-encode userinfo and drop the redundant leading
+   @; HTTPS proxy now receives credentials when configured
+
+Miscellaneous:
+ * First beta of the 1.2.0 release; validation period before GA
+ * Internal refactors using D SumType for compile-time exhaustiveness:
+   TerminalRegex (BuiltinRegex/CustomRegex), SyncInputEvent, and a typed
+   TerminalSnapshot struct as the single source of truth for session
+   serialisation
+ * CI: install LDC from the upstream tarball; build GtkD from source on
+   Debian Testing where the apt package was removed
+
 Version 1.1.1
 ~~~~~~~~~~~~~~
 Released: 2026-04-18

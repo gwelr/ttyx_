@@ -272,6 +272,22 @@ import std.regex;
 
 package:
 
+/**
+ * Thrown by `TerminalTrigger`'s constructor when the supplied action name
+ * does not match any known `TriggerAction` value. The loader in
+ * `Terminal.loadTriggers` catches this and skips the offending entry.
+ */
+class UnknownTriggerActionException : Exception {
+    /// The unrecognised action name (for diagnostics).
+    string actionName;
+
+    this(string actionName) {
+        import std.format : format;
+        this.actionName = actionName;
+        super(format("Unknown trigger action name: '%s'", actionName));
+    }
+}
+
 /// Holds definition of a trigger including its compiled regex.
 class TerminalTrigger {
     /// The regex pattern string as defined by the user.
@@ -315,7 +331,11 @@ class TerminalTrigger {
                 action = TriggerAction.RUN_PROCESS;
                 break;
             default:
-                break;
+                // Fall-through used to silently leave `action` at its enum
+                // init (UPDATE_STATE), so a misspelled or stale entry would
+                // run the wrong action without any indication. Surface it
+                // instead — the loader catches and skips.
+                throw new UnknownTriggerActionException(actionName);
         }
 
         // Triggers always use multi-line mode since we are getting a buffer from VTE
@@ -363,10 +383,23 @@ unittest {
     assert(m[1] == "disk full");
 }
 
-/// Test: TerminalTrigger with unknown action name defaults (no crash).
+/// Test: TerminalTrigger throws on unrecognised action name (regression for
+/// the silent-default-to-UPDATE_STATE bug — a typo or stale entry used to
+/// produce a working-but-wrong trigger).
 unittest {
-    auto t = new TerminalTrigger("test", "nonexistent-action", "");
-    // Should not crash, action stays at default init value
+    import std.exception : assertThrown, collectException;
+    assertThrown!UnknownTriggerActionException(
+        new TerminalTrigger("test", "nonexistent-action", ""));
+
+    // Empty action name is also rejected.
+    assertThrown!UnknownTriggerActionException(
+        new TerminalTrigger("test", "", ""));
+
+    // Exception carries the bad name for the loader's log line.
+    auto e = collectException!UnknownTriggerActionException(
+        new TerminalTrigger("test", "TypoedAction", ""));
+    assert(e !is null);
+    assert(e.actionName == "TypoedAction");
 }
 
 /// Test: DragInfo initializes correctly.

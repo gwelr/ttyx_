@@ -2276,8 +2276,11 @@ private:
         trgDefs ~= gsProfile.getStrv(SETTINGS_ALL_TRIGGERS_KEY);
         foreach (trgDef; trgDefs) {
             foreach(value; csvReader!(Tuple!(string, string, string))(trgDef)) {
-                TerminalTrigger trigger = new TerminalTrigger(value[0], value[1], value[2]);
-                tmpTriggers ~= trigger;
+                try {
+                    tmpTriggers ~= new TerminalTrigger(value[0], value[1], value[2]);
+                } catch (UnknownTriggerActionException e) {
+                    warningf("Skipping trigger entry with unknown action '%s' (pattern '%s')", e.actionName, value[0]);
+                }
             }
         }
         triggers = tmpTriggers;

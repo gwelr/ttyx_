@@ -44,13 +44,21 @@ string getHostShell() {
         return null;
     }
 
-    string shell = passwd.split(":")[6];
+    // A passwd entry has 7 colon-separated fields; the shell is the 7th.
+    // Guard the field count so a malformed line doesn't throw a RangeError.
+    string[] fields = passwd.split(":");
+    if (fields.length < 7) {
+        warningf("Host passwd entry has fewer than 7 fields, cannot determine shell: %s", passwd);
+        return null;
+    }
+
+    string shell = fields[6];
     if (shell.length == 0) {
         warning("Host shell is empty from passwd: %s", passwd);
         return null;
     }
 
-    return shell.length > 0 ? shell : null;
+    return shell;
 }
 
 /**

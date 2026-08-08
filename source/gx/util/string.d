@@ -154,3 +154,92 @@ unittest {
     assert(m.length == 1);
     assert(m["a"] == "=b");
 }
+
+/**
+ * URI schemes ttyx_ is willing to hand to the desktop URI handler when a link
+ * is opened. Covers the schemes the built-in link regexes produce
+ * (`gx.ttyx.terminal.regex`) plus `mailto` and `file`. Anything outside this
+ * set — e.g. a scriptable custom scheme delivered via an OSC 8 hyperlink — is
+ * refused rather than opened blindly.
+ */
+immutable string[] ALLOWED_URI_SCHEMES = [
+    "http", "https", "ftp", "ftps", "sftp", "file", "mailto",
+    "news", "nntp", "telnet", "webcal", "sip", "sips", "h323",
+];
+
+/**
+ * True if `uri`'s scheme (the text before the first `:`) is in
+ * `ALLOWED_URI_SCHEMES`. Matching is case-insensitive. A URI with no scheme
+ * (no `:`, or a leading `:`) is rejected.
+ */
+bool isAllowedUriScheme(string uri) {
+    ptrdiff_t colon = uri.indexOf(':');
+    if (colon <= 0) return false;
+    string scheme = uri[0 .. colon].toLower;
+    foreach (allowed; ALLOWED_URI_SCHEMES) {
+        if (scheme == allowed) return true;
+    }
+    return false;
+}
+
+/// Test: allowed schemes pass, case-insensitively.
+unittest {
+    assert(isAllowedUriScheme("https://example.com/"));
+    assert(isAllowedUriScheme("HTTP://example.com/"));
+    assert(isAllowedUriScheme("mailto:user@example.com"));
+    assert(isAllowedUriScheme("file:///etc/hostname"));
+    assert(isAllowedUriScheme("ftp://host/f"));
+    assert(isAllowedUriScheme("sips:bob@example.com"));
+}
+
+/// Test: disallowed / dangerous / scheme-less URIs are rejected.
+unittest {
+    assert(!isAllowedUriScheme("javascript:alert(1)"));
+    assert(!isAllowedUriScheme("data:text/html,<script>"));
+    assert(!isAllowedUriScheme("customhandler:do-something"));
+    assert(!isAllowedUriScheme("no-scheme-here"));
+    assert(!isAllowedUriScheme(":leading-colon"));
+    assert(!isAllowedUriScheme(""));
+}
+
+/**
+ * Return the last `maxBytes` bytes of `text`, adjusted forward to the next
+ * UTF-8 lead byte so the result never begins mid-code-point. If `text` is
+ * already `<= maxBytes`, it is returned unchanged.
+ *
+ * Used to bound the amount of terminal output fed to a user-configured
+ * trigger regex: `std.regex` has no step/time limit and cannot be interrupted,
+ * so a catastrophic-backtracking pattern over a very large input would hang
+ * the UI thread. Keeping the tail preserves the most recent output, which is
+ * what triggers care about.
+ */
+string boundedTail(string text, size_t maxBytes) {
+    if (text.length <= maxBytes) return text;
+    size_t start = text.length - maxBytes;
+    // Skip UTF-8 continuation bytes (0b10xxxxxx) so we start on a code point.
+    while (start < text.length && (text[start] & 0xC0) == 0x80) {
+        start++;
+    }
+    return text[start .. $];
+}
+
+/// Test: short input is returned unchanged; long input is tailed to <= maxBytes.
+unittest {
+    assert(boundedTail("hello", 100) == "hello");
+    assert(boundedTail("hello", 5) == "hello");
+    assert(boundedTail("abcdef", 3) == "def");
+}
+
+/// Test: the tail never begins mid-code-point (valid UTF-8 out).
+unittest {
+    import std.utf : validate;
+    // "é" is 2 bytes (0xC3 0xA9). A raw 1-byte tail would split it; boundedTail
+    // must skip the continuation byte and yield valid UTF-8.
+    string s = "aé";            // bytes: 'a', 0xC3, 0xA9  (length 3)
+    string t = boundedTail(s, 1);
+    validate(t);                // throws if invalid UTF-8
+    assert(t == "");            // continuation byte skipped past end
+    string u = boundedTail(s, 2);
+    validate(u);
+    assert(u == "é");
+}

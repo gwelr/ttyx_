@@ -131,8 +131,8 @@ import gx.gtk.vte;
 import gx.i18n.l10n;
 import gx.util.array;
 import gx.util.geometry : Point, pointInTriangle;
-import gx.util.redact : stripUrlUserinfo;
-import gx.util.string : parsePairs;
+import gx.util.redact : stripUrlUserinfo, redactEnvEntry;
+import gx.util.string : parsePairs, isAllowedUriScheme, boundedTail;
 
 import gx.ttyx.application;
 import gx.ttyx.bookmark.bmchooser;
@@ -249,6 +249,9 @@ private:
     string _overrideTitle;
     //overrides command when load from session JSON
     string _overrideCommand;
+    //true when _overrideCommand came from a restored session file (untrusted),
+    //so it must be confirmed with the user before it is executed on load
+    bool _overrideCommandNeedsConfirm;
     //overrides badge
     string _overrideBadge;
     //Whether synchronized input is turned on in the session
@@ -1314,26 +1317,33 @@ private:
     /**
      * Replace the various token variables in a string
      */
-    string replaceVariables(string text) {
+    string replaceVariables(string text, string delegate(string) transform = null) {
+        // Several of these values are remote-settable (title/icon-title via
+        // OSC, hostname/username/directory via OSC 7, process name from the
+        // foreground process). When the result feeds a shell (custom links,
+        // EXECUTE_COMMAND/RUN_PROCESS triggers) callers pass a shell-quoting
+        // transform; display/state callers pass none and get verbatim values.
+        string q(string v) { return transform is null ? v : transform(v); }
+
         string windowTitle = vte.getWindowTitle();
         if (windowTitle.length == 0)
             windowTitle = _("Terminal");
-        text = text.replace(VARIABLE_TERMINAL_TITLE, windowTitle);
-        text = text.replace(VARIABLE_TERMINAL_ICON_TITLE, vte.getIconTitle());
-        text = text.replace(VARIABLE_TERMINAL_ID, to!string(terminalID));
-        text = text.replace(VARIABLE_TERMINAL_COLUMNS, to!string(vte.getColumnCount()));
-        text = text.replace(VARIABLE_TERMINAL_ROWS, to!string(vte.getRowCount()));
-        text = text.replace(VARIABLE_TERMINAL_HOSTNAME, gst.currentHostname);
-        text = text.replace(VARIABLE_TERMINAL_USERNAME, gst.currentUsername);
-        text = text.replace(VARIABLE_TERMINAL_STATUS_READONLY, to!string(!vte.getInputEnabled()));
-        text = text.replace(VARIABLE_TERMINAL_STATUS_SILENCE, to!string(monitorSilence));
-        text = text.replace(VARIABLE_TERMINAL_STATUS_INPUT_SYNC, to!string(isSynchronizedInput()));
+        text = text.replace(VARIABLE_TERMINAL_TITLE, q(windowTitle));
+        text = text.replace(VARIABLE_TERMINAL_ICON_TITLE, q(vte.getIconTitle()));
+        text = text.replace(VARIABLE_TERMINAL_ID, q(to!string(terminalID)));
+        text = text.replace(VARIABLE_TERMINAL_COLUMNS, q(to!string(vte.getColumnCount())));
+        text = text.replace(VARIABLE_TERMINAL_ROWS, q(to!string(vte.getRowCount())));
+        text = text.replace(VARIABLE_TERMINAL_HOSTNAME, q(gst.currentHostname));
+        text = text.replace(VARIABLE_TERMINAL_USERNAME, q(gst.currentUsername));
+        text = text.replace(VARIABLE_TERMINAL_STATUS_READONLY, q(to!string(!vte.getInputEnabled())));
+        text = text.replace(VARIABLE_TERMINAL_STATUS_SILENCE, q(to!string(monitorSilence)));
+        text = text.replace(VARIABLE_TERMINAL_STATUS_INPUT_SYNC, q(to!string(isSynchronizedInput())));
 
         if (text.indexOf(VARIABLE_TERMINAL_PROCESS) >= 0) {
             if (tilix.processMonitor)
-                text = text.replace(VARIABLE_TERMINAL_PROCESS, activeProcessName);
+                text = text.replace(VARIABLE_TERMINAL_PROCESS, q(activeProcessName));
             else
-                text = text.replace(VARIABLE_TERMINAL_PROCESS, _("Not Enabled"));
+                text = text.replace(VARIABLE_TERMINAL_PROCESS, q(_("Not Enabled")));
         }
         string path;
         if (terminalInitialized) {
@@ -1342,8 +1352,23 @@ private:
             //trace("Terminal not initialized yet or VTE not configured, no path available");
             path = "";
         }
-        text = text.replace(VARIABLE_TERMINAL_DIR, path);
+        text = text.replace(VARIABLE_TERMINAL_DIR, q(path));
         return text;
+    }
+
+    /**
+     * Build a shell command from a user-configured template for the
+     * trigger/custom-link exec paths. Terminal variables and regex match
+     * tokens are both attacker-influenced (variables set via OSC, match
+     * tokens drawn from terminal output), so every substituted value is
+     * shell-quoted while the template's own shell syntax is preserved.
+     * Variables are substituted first so a match value that literally
+     * contains "${title}" is not re-expanded.
+     */
+    string shellCommandFromTemplate(string tmpl, string[] groups) {
+        string delegate(string) quote = (string s) => ShellUtils.shellQuote(s);
+        string cmd = replaceVariables(tmpl, quote);
+        return replaceMatchTokensQuoted(cmd, groups, quote);
     }
 
     /**
@@ -1571,6 +1596,15 @@ private:
             //tracef("Checking from %d,%d to %d,%d",startRow, startCol, cursorRow, cursorCol);
             if (startRow <0) startRow = 0;
             string text = vte.getTextRange(startRow, startCol, cursorRow, cursorCol, null, null, attr);
+            // Bound the input scanned by the user-configured trigger regexes.
+            // std.regex is a backtracking engine with no step/time limit and
+            // cannot be interrupted, so a catastrophic pattern over a very large
+            // input would hang the UI thread. maxLines caps rows, but
+            // `unlimitedLines` or extremely wide lines could still feed
+            // megabytes here; cap the scanned text (keeping the most recent
+            // output) as defense-in-depth.
+            enum size_t MAX_TRIGGER_SCAN_BYTES = 256 * 1024;
+            text = boundedTail(text, MAX_TRIGGER_SCAN_BYTES);
             // Update position early in case we get re-entrant event
             triggerLastRowChecked = cursorRow;
             triggerLastColChecked = cursorCol;
@@ -1602,12 +1636,17 @@ private:
      */
     void processTrigger(TerminalTrigger trigger, string[] groups) {
 
-        // replace various variable tokens in parameters, i.e. ${rows}, ${title}, etc
-        trigger.parameters = replaceVariables(trigger.parameters);
+        // Variables are substituted verbatim for the display/state/PTY
+        // actions; the shell-exec actions (EXECUTE_COMMAND / RUN_PROCESS)
+        // re-derive from the raw template via shellCommandFromTemplate, which
+        // shell-quotes every substituted value so attacker-controlled terminal
+        // output cannot inject into /bin/sh -c. Using a local instead of
+        // mutating trigger.parameters also keeps repeated fires idempotent.
+        string params = replaceVariables(trigger.parameters);
 
         final switch (trigger.action) {
             case TriggerAction.UPDATE_STATE:
-                string[string] parameters = parsePairs(replaceMatchTokens(trigger.parameters, groups));
+                string[string] parameters = parsePairs(replaceMatchTokens(params, groups));
                 bool update = false;
                 foreach (variable; EnumMembers!(GlobalTerminalState.StateVariable)) {
                     if (variable in parameters) {
@@ -1622,26 +1661,26 @@ private:
                 }
                 break;
             case TriggerAction.EXECUTE_COMMAND:
-                spawnShell(replaceMatchTokens(trigger.parameters, groups));
+                spawnShell(shellCommandFromTemplate(trigger.parameters, groups));
                 break;
             case TriggerAction.SEND_NOTIFICATION:
-                string[string] parameters = parsePairs(replaceMatchTokens(trigger.parameters, groups));
+                string[string] parameters = parsePairs(replaceMatchTokens(params, groups));
                 tracef("Parameters count: %d", parameters.length);
                 string title = _("ttyx_ Custom Notification");
                 string _body;
                 if ("title" in parameters) title = parameters["title"];
                 if ("body" in parameters) _body = parameters["body"];
-                else _body = replaceMatchTokens(trigger.parameters, groups);
+                else _body = replaceMatchTokens(params, groups);
                 if (!hasFocus()) {
                     notifyProcessNotification(title, _body, uuid);
                 }
                 break;
             case TriggerAction.UPDATE_BADGE:
-                _overrideBadge = replaceMatchTokens(trigger.parameters, groups);
+                _overrideBadge = replaceMatchTokens(params, groups);
                 updateBadge();
                 break;
             case TriggerAction.UPDATE_TITLE:
-                _overrideTitle = replaceMatchTokens(trigger.parameters, groups);
+                _overrideTitle = replaceMatchTokens(params, groups);
                 updateTitle();
                 break;
             case TriggerAction.PLAY_BELL:
@@ -1650,7 +1689,10 @@ private:
                 }
                 break;
             case TriggerAction.SEND_TEXT:
-                string value = replaceMatchTokens(trigger.parameters, groups);
+                // Fed to the child PTY as if typed — that is the feature's
+                // intent, so this is deliberately not shell-quoted (it is not
+                // handed to a shell).
+                string value = replaceMatchTokens(params, groups);
                 vte.feedChild(value);
                 break;
             case TriggerAction.INSERT_PASSWORD:
@@ -1661,8 +1703,7 @@ private:
                 }
                 break;
             case TriggerAction.RUN_PROCESS:
-                string process = replaceMatchTokens(trigger.parameters, groups);
-                auto response = executeShell(process);
+                auto response = executeShell(shellCommandFromTemplate(trigger.parameters, groups));
                 vte.feedChild(response.output);
                 break;
         }
@@ -1975,8 +2016,7 @@ private:
                                     string[] groups = [info.getString()];
                                     groups ~= info.fetchAll();
                                     foreach(group; groups) tracef("Group %s", group);
-                                    string command = replaceMatchTokens(cr.command, groups);
-                                    command = replaceVariables(command);
+                                    string command = shellCommandFromTemplate(cr.command, groups);
                                     trace("Command: " ~ command);
                                     string[string] env;
                                     spawnShell(command, env, Config.none, currentLocalDirectory);
@@ -2001,6 +2041,16 @@ private:
             return;
         default:
             break;
+        }
+        // An OSC 8 hyperlink carries an arbitrary URI chosen by whatever wrote
+        // to the terminal. Only hand allow-listed schemes to the desktop URI
+        // handler; refuse anything else (e.g. a scriptable custom scheme)
+        // rather than opening it blindly.
+        if (!isAllowedUriScheme(uri)) {
+            string message = format(_("Refusing to open link with a disallowed scheme.\nURI was '%s'"), stripUrlUserinfo(uri));
+            showErrorDialog(cast(Window) getToplevel(), message, _("Link Scheme Not Allowed"));
+            warning(message);
+            return;
         }
         try {
             tracef("Showing URI %s", uri);
@@ -2418,10 +2468,14 @@ private:
             errorf("Working Directory=%s", workingDir);
             error("Arguments used to execute process:");
             foreach (i, arg; args)
-                errorf("\targ %d=%s", i, arg);
+                errorf("\targ %d=%s", i, stripUrlUserinfo(arg));
+            // Redact secrets/proxy credentials before they reach the log sink.
+            // envv carries setProxyEnv() output, e.g. http_proxy with inline
+            // user:password, and this dump runs at error level (not gated
+            // behind verbose logging) on every spawn failure.
             error("Environment used to execute process:");
             foreach (i, env; envv)
-                errorf("\tenv %d=%s", i, env);
+                errorf("\tenv %d=%s", i, redactEnvEntry(env));
         }
 
         tracef("workingDir parameter=%s", workingDir);
@@ -3144,6 +3198,41 @@ public:
     }
 
     /**
+     * Ask the user to confirm running a command embedded in a restored
+     * session before it executes. Returns true to run it, false to open a
+     * normal shell instead. The command is shown as plain secondary text (not
+     * markup) so it cannot inject Pango markup, and the safe choice (Open
+     * Shell) is the default response.
+     */
+    bool confirmSessionCommand(string command) {
+        Window parent = cast(Window) getToplevel();
+        MessageDialog dialog = new MessageDialog(parent,
+            DialogFlags.MODAL + DialogFlags.USE_HEADER_BAR, MessageType.QUESTION, ButtonsType.NONE,
+            _("This session wants to run a command:"), null);
+        scope (exit) {
+            dialog.destroy();
+        }
+        if (parent !is null)
+            dialog.setTransientFor(parent);
+        dialog.setTitle(_("Run session command?"));
+
+        // Show the command in a plain (non-markup) Label so it renders
+        // literally — no Pango markup interpretation and no printf-format
+        // hazard from the untrusted command text.
+        Label lblCmd = new Label(command);
+        lblCmd.setHalign(GtkAlign.START);
+        lblCmd.setSelectable(true);
+        lblCmd.setLineWrap(true);
+        dialog.getMessageArea().add(lblCmd);
+        lblCmd.showAll();
+
+        dialog.addButton(_("Open Shell"), ResponseType.CANCEL);
+        dialog.addButton(_("Run Command"), ResponseType.OK);
+        dialog.setDefaultResponse(ResponseType.CANCEL);
+        return dialog.run() == ResponseType.OK;
+    }
+
+    /**
      * initializes the terminal, i.e spawns the child process.
      *
      * Params:
@@ -3153,6 +3242,18 @@ public:
     void initTerminal(string initialPath, bool firstRun) {
         trace("Initializing Terminal with directory " ~ initialPath);
         gst.initialCWD = initialPath;
+        // A command embedded in a restored session runs as the terminal's
+        // child process on load. Session files can be untrusted, so confirm
+        // before executing; on decline, fall back to a normal shell. Only the
+        // session-restore path sets this flag — CLI (-e/-x) and profile custom
+        // commands are trusted and never prompt.
+        if (_overrideCommandNeedsConfirm) {
+            _overrideCommandNeedsConfirm = false;
+            if (!confirmSessionCommand(_overrideCommand)) {
+                trace("User declined session command; opening a normal shell instead");
+                _overrideCommand = null;
+            }
+        }
         spawnTerminalProcess(initialPath, _overrideCommand);
         if (firstRun) {
             int width = gsProfile.getInt(SETTINGS_PROFILE_SIZE_COLUMNS_KEY);
@@ -3392,7 +3493,12 @@ public:
     void restore(TerminalSnapshot s) {
         if (!s.overrideTitle.isNull) _overrideTitle = s.overrideTitle.get;
         if (!s.overrideBadge.isNull) _overrideBadge = s.overrideBadge.get;
-        if (!s.overrideCommand.isNull) _overrideCommand = s.overrideCommand.get;
+        if (!s.overrideCommand.isNull) {
+            _overrideCommand = s.overrideCommand.get;
+            // Restored from a session file, which may be untrusted — require
+            // confirmation before this command runs (see initTerminal).
+            _overrideCommandNeedsConfirm = _overrideCommand.length > 0;
+        }
         vte.setInputEnabled(!s.readOnly);
         SimpleAction roAction = cast(SimpleAction) sagTerminalActions.lookup(ACTION_READ_ONLY);
         roAction.setState(new GVariant(s.readOnly));

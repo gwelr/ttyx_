@@ -11,9 +11,10 @@ import core.sys.posix.unistd : pid_t;
 import std.conv : to;
 import std.experimental.logger;
 import std.format : format;
-import std.string : indexOf, lastIndexOf, replace;
+import std.string : replace;
 
 import gx.i18n.l10n;
+import gx.util.proc : parseProcName;
 import gx.ttyx.terminal.util : isFlatpak;
 import gx.ttyx.terminal.context;
 import gx.ttyx.terminal.flatpak : captureHostToolboxCommand;
@@ -113,8 +114,8 @@ public:
                 data = to!string(cast(char[]) read(format("/proc/%d/stat", childPid)));
             }
 
-            size_t rpar = data.lastIndexOf(")");
-            name = data[data.indexOf("(") + 1 .. rpar];
+            string parsed = parseProcName(data);
+            name = parsed !is null ? parsed : _("Unknown");
         } catch (FileException fe) {
             name = _("Unknown");
             warning(fe);

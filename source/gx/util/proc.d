@@ -16,6 +16,26 @@ bool isSSHProcess(string name) {
     return SSH_PROCESS_NAMES.canFind(name);
 }
 
+/**
+ * Extract the process name (the `comm` field) from a `/proc/[pid]/stat`
+ * line. `comm` sits between the first '(' and the last ')' and may itself
+ * contain spaces and parentheses, so it is delimited by those outermost
+ * parens rather than by whitespace.
+ *
+ * Returns null when the parens are missing or malformed. Callers previously
+ * sliced unconditionally: `lastIndexOf(")")` returned -1 into a size_t,
+ * wrapping to SIZE_MAX, and `data[0 .. SIZE_MAX]` threw a RangeError — an
+ * Error the surrounding `catch (FileException)` did not catch. Reachable in
+ * the Flatpak path when the host toolbox returns empty/non-stat output.
+ */
+string parseProcName(string statData) {
+    import std.string : indexOf, lastIndexOf;
+    ptrdiff_t lpar = statData.indexOf('(');
+    ptrdiff_t rpar = statData.lastIndexOf(')');
+    if (lpar < 0 || rpar <= lpar) return null;
+    return statData[lpar + 1 .. rpar];
+}
+
 /// Parsed fields from `/proc/[pid]/status` that we care about.
 /// `uid` is the effective UID; -1 signals a read/parse failure.
 struct ProcStatus {
@@ -83,6 +103,20 @@ bool checkProcessTreeForRoot(pid_t startPid) {
 }
 
 // -- tests --------------------------------------------------------------
+
+unittest {
+    // Typical stat line: name is between the first '(' and the last ')'.
+    assert(parseProcName("1234 (bash) S 1 1234 1234 0 -1") == "bash");
+    // comm containing spaces and parens is delimited by the outer parens.
+    assert(parseProcName("1234 (weird (name) x) S 1") == "weird (name) x");
+    // Empty comm.
+    assert(parseProcName("1234 () S") == "");
+    // Malformed input returns null rather than throwing RangeError.
+    assert(parseProcName("no parens here") is null);
+    assert(parseProcName("") is null);
+    assert(parseProcName("1234 (") is null);   // no closing paren
+    assert(parseProcName(")(") is null);        // ')' before '('
+}
 
 unittest {
     // SSH process detection

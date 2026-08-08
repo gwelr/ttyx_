@@ -193,6 +193,51 @@ unittest {
 }
 
 /**
+ * Like `replaceMatchTokens`, but every match value is passed through `quote`
+ * before substitution.
+ *
+ * Match values (`$0` = whole match, `$1..` = capture groups) come from regex
+ * matches against terminal output — fully attacker-controlled. The shell-exec
+ * paths (custom-link clicks, EXECUTE_COMMAND/RUN_PROCESS triggers) hand the
+ * result to `/bin/sh -c`, so each value must be quoted into an inert shell
+ * word here; otherwise a captured `; rm -rf ~` injects into the command.
+ * Callers pass `ShellUtils.shellQuote` (g_shell_quote). The template itself is
+ * NOT quoted, so the user's own shell syntax (pipes, `&&`, redirects) still
+ * works. Non-shell callers keep using `replaceMatchTokens` (verbatim).
+ */
+string replaceMatchTokensQuoted(string tokenizedText, string[] matches, string delegate(string) quote) {
+    string[] quoted;
+    foreach (match; matches) {
+        quoted ~= quote(match);
+    }
+    return replaceMatchTokens(tokenizedText, quoted);
+}
+
+unittest {
+    // A single-quote-wrapping stand-in for g_shell_quote keeps the test free
+    // of GTK: it proves the wiring passes every value through `quote`, and
+    // that a value with shell metacharacters is neutralised.
+    string sq(string s) {
+        return "'" ~ s.replace("'", `'\''`) ~ "'";
+    }
+
+    assert(replaceMatchTokensQuoted("xdg-open $0", ["http://x/; rm -rf ~"], &sq)
+           == "xdg-open 'http://x/; rm -rf ~'");
+
+    // Embedded single quote in a capture ($1 = matches[1]) is escaped, not
+    // terminated. matches[0] is the whole match, matches[1..] the captures.
+    assert(replaceMatchTokensQuoted("run $1", ["whole", "a'b"], &sq)
+           == `run 'a'\''b'`);
+
+    // Template shell syntax around the token is left intact.
+    assert(replaceMatchTokensQuoted("echo $0 && done", ["x"], &sq)
+           == "echo 'x' && done");
+
+    // No matching token: template unchanged.
+    assert(replaceMatchTokensQuoted("plain", ["x"], &sq) == "plain");
+}
+
+/**
  * Struct used to track matches in terminal for cases like context menu
  * where we need to preserve state between finding match and performing action
  */

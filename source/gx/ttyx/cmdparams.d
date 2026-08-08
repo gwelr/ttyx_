@@ -18,6 +18,7 @@ import glib.VariantType : GVariantType = VariantType;
 
 import gx.i18n.l10n;
 import gx.util.path;
+import gx.util.redact : stripUrlUserinfo;
 
 enum CMD_WORKING_DIRECTORY = "working-directory";
 enum CMD_SESSION = "session";
@@ -221,15 +222,21 @@ public:
                 _exit = true;
         }
 
+        // Strip URL userinfo from free-text values before they reach the log
+        // sink; -e/--command in particular can carry a credential-bearing URL
+        // (e.g. `psql postgres://u:pw@db/app`). app.d already redacts raw argv;
+        // this covers the re-log of the parsed values. Non-URL values are
+        // unchanged. _profileName/_action are identifiers, _session is file
+        // paths — none carry credentials.
         trace("Command line parameters:");
-        trace("\tworking-directory=" ~ _workingDir);
+        trace("\tworking-directory=" ~ stripUrlUserinfo(_workingDir));
         trace("\tsession=" ~ _session);
         trace("\tprofile=" ~ _profileName);
-        trace("\ttitle=" ~ _title);
+        trace("\ttitle=" ~ stripUrlUserinfo(_title));
         trace("\taction=" ~ _action);
-        trace("\tcommand=" ~ _command);
-        trace("\tcwd=" ~ _cwd);
-        trace("\tpwd=" ~ _pwd);
+        trace("\tcommand=" ~ stripUrlUserinfo(_command));
+        trace("\tcwd=" ~ stripUrlUserinfo(_cwd));
+        trace("\tpwd=" ~ stripUrlUserinfo(_pwd));
         if (_quake) {
             trace("\tquake");
         }

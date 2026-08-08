@@ -455,7 +455,10 @@ public:
             HashTable ht = createHashTable();
             immutable(char*) idz = toStringz(id);
             ht.insert(cast(void*)attrID, cast(void*)idz);
-            string password = Secret.passwordLookupvSync(schema, ht, null);
+            // Use the non-pageable lookup so the retrieved secret is stored in
+            // memory that libsecret keeps out of swap, rather than in ordinary
+            // pageable memory that could be written to disk.
+            string password = Secret.passwordLookupvNonpageableSync(schema, ht, null);
             if (gsSettings.getBoolean(SETTINGS_PASSWORD_INCLUDE_RETURN_KEY)) {
                 password ~= '\n';
             }

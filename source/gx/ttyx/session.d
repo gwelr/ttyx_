@@ -95,6 +95,31 @@ class SessionCreationException : Exception {
 }
 
 /**
+ * Parse a serialized paned orientation. GTK's Orientation enum has exactly
+ * two members (HORIZONTAL = 0, VERTICAL = 1). A session file carrying any
+ * other value would reach the `final switch` in getPosition/scalePosition
+ * and throw a SwitchError — an Error that the session-load `catch (Exception)`
+ * does not catch, so a crafted or corrupt session file would crash the app.
+ * Reject the value here instead so the load fails gracefully.
+ */
+Orientation parseOrientation(long raw) {
+    import std.conv : to;
+    if (raw != Orientation.HORIZONTAL && raw != Orientation.VERTICAL) {
+        throw new SessionCreationException("Invalid paned orientation value in session: " ~ to!string(raw));
+    }
+    return cast(Orientation) raw;
+}
+
+unittest {
+    import std.exception : assertThrown;
+    assert(parseOrientation(Orientation.HORIZONTAL) == Orientation.HORIZONTAL);
+    assert(parseOrientation(Orientation.VERTICAL) == Orientation.VERTICAL);
+    assertThrown!SessionCreationException(parseOrientation(2));
+    assertThrown!SessionCreationException(parseOrientation(-1));
+    assertThrown!SessionCreationException(parseOrientation(9999));
+}
+
+/**
  * The session is used to represent a grouping of tiled terminals. It is
  * responsible for managing the layout, de/serialization and session level
  * actions. Note that the Terminal widgets managed by the session are not the
@@ -965,7 +990,7 @@ private:
      */
     Paned parsePaned(JSONValue value, SessionSizeInfo sizeInfo) {
         trace("Loading paned");
-        Orientation orientation = cast(Orientation) value[NODE_ORIENTATION].integer();
+        Orientation orientation = parseOrientation(value[NODE_ORIENTATION].integer());
         TerminalPaned paned = createPaned(orientation);
         Box b1 = new Box(Orientation.VERTICAL, 0);
         b1.add(parseNode(value[NODE_CHILD1], sizeInfo));
